@@ -204,22 +204,24 @@
       }
     }
 
-    // CATEGORY FILTERING
-    function filterCategory(categoryName) {
-  // 1. Reset views so the list is visible and detail view is hidden
-  const articleDetailView = document.getElementById('articleView'); // Adjust ID to match your HTML
-  const articleListView = document.getElementById('dashboardView');     // Adjust ID to match your HTML
+   // CATEGORY FILTERING
+function filterCategory(categoryName) {
+  // 1. Force the app to show the dashboard grid and hide the article reader
+  const articleView = document.getElementById('articleView');
+  const dashboardView = document.getElementById('dashboardView');
 
-  if (articleDetailView) articleDetailView.classList.add('hidden');
-  if (articleListView) articleListView.classList.remove('hidden');
+  if (articleView) articleView.classList.add('hidden');
+  if (dashboardView) dashboardView.classList.remove('hidden');
 
-  // 2. Update your active category state
-  selectedCategory = categoryName;
+  // 2. Set the global category variable (using currentCategory to match standard fetch syntax)
+  if (typeof currentCategory !== 'undefined') {
+    currentCategory = categoryName;
+  }
+  if (typeof selectedCategory !== 'undefined') {
+    selectedCategory = categoryName;
+  }
 
-  // 3. Highlight active UI tab (optional step if you have tab styling)
-  updateCategoryTabUI(categoryName);
-
-  // 4. Re-fetch or re-render articles filtered by category
+  // 3. Fetch and display articles for the chosen category
   fetchArticles(); 
 }
 

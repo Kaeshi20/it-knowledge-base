@@ -167,6 +167,14 @@
     </div>
   </div>
 
+  <!-- MODAL: IMAGE EXPAND LIGHTBOX -->
+  <div id="imageLightbox" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md hidden flex flex-col justify-center items-center p-4 z-50 cursor-pointer" onclick="closeImageLightbox()">
+    <div class="relative max-w-5xl max-h-[90vh]" onclick="event.stopPropagation()">
+      <button onclick="closeImageLightbox()" class="absolute -top-10 right-0 text-white hover:text-slate-300 font-bold text-sm bg-slate-800/80 px-3 py-1 rounded-full border border-slate-600 transition">✕ Close</button>
+      <img id="lightboxImage" src="" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain border border-slate-700">
+    </div>
+  </div>
+
   <!-- APPLICATION LOGIC -->
   <script>
     // VIEW SWITCHER
@@ -182,6 +190,19 @@
 
     function openNewArticleModal() {
       document.getElementById('articleModal').classList.remove('hidden');
+    }
+
+    // IMAGE LIGHTBOX FUNCTIONS
+    function expandImage(url) {
+      const lightbox = document.getElementById('imageLightbox');
+      const lightboxImg = document.getElementById('lightboxImage');
+      lightboxImg.src = url;
+      lightbox.classList.remove('hidden');
+    }
+
+    function closeImageLightbox() {
+      document.getElementById('imageLightbox').classList.add('hidden');
+      document.getElementById('lightboxImage').src = '';
     }
 
     // SWITCH AUTH TAB (Login / Register)
@@ -208,10 +229,8 @@
     function filterCategory(categoryName) {
       currentCategory = categoryName;
 
-      // Force view switch back to dashboard grid
       showView('dashboardView');
 
-      // Update active styling on category buttons
       const buttons = document.querySelectorAll('.cat-btn');
       buttons.forEach(btn => {
         if (btn.innerText.includes(categoryName)) {
@@ -233,7 +252,6 @@
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Handle Queue vs Published filter
       if (currentCategory === 'Queue') {
         query = query.eq('status', 'pending');
       } else {
@@ -243,7 +261,6 @@
         }
       }
 
-      // Handle Search Input
       if (searchInput) {
         query = query.or(`title.ilike.%${searchInput}%,content.ilike.%${searchInput}%`);
       }
@@ -325,7 +342,19 @@
         </div>
         <h1 class="text-3xl font-extrabold text-slate-900 mb-2">${art.title}</h1>
         <div class="text-xs text-slate-400 mb-6">By ${art.author_email || 'IT Staff'} • ${new Date(art.created_at).toLocaleString()}</div>
-        ${art.image_url ? `<img src="${art.image_url}" class="max-h-96 w-full object-cover rounded-xl mb-6 shadow-sm">` : ''}
+        
+        ${art.image_url ? `
+          <div class="mb-6 flex flex-col items-center group">
+            <div class="relative overflow-hidden rounded-xl border border-slate-200 shadow-sm cursor-zoom-in bg-slate-50 inline-block">
+              <img src="${art.image_url}" onclick="expandImage('${art.image_url}')" class="h-80 max-w-full object-contain transition duration-200 group-hover:scale-105">
+              <div onclick="expandImage('${art.image_url}')" class="absolute bottom-2 right-2 bg-slate-900/70 text-white text-[11px] px-2.5 py-1 rounded-md opacity-0 group-hover:opacity-100 transition">
+                🔍 Click to Expand
+              </div>
+            </div>
+            <span class="text-xs text-slate-400 mt-1">Click photo to open full view</span>
+          </div>
+        ` : ''}
+        
         <div class="prose max-w-none text-slate-700 whitespace-pre-line leading-relaxed">${art.content}</div>
       `;
       showView('articleView');
@@ -342,30 +371,24 @@
         const fileInput = document.getElementById('artImage');
         let imageUrl = null;
 
-        // Optional image upload
         if (fileInput && fileInput.files && fileInput.files.length > 0) {
           const file = fileInput.files[0];
           const filePath = `public/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
           
-          // Upload to the correct bucket: kb-image
-const { data: uploadData, error: uploadError } = await supabaseClient.storage
-  .from('kb-image')
-  .upload(filePath, file);
+          const { data: uploadData, error: uploadError } = await supabaseClient.storage
+            .from('kb-image')
+            .upload(filePath, file);
 
-if (uploadError) {
-  console.error("Storage Upload Error:", uploadError);
-  alert("Image upload failed: " + uploadError.message);
-  return;
-}
+          if (uploadError) {
+            alert("Image Upload Failed: " + uploadError.message);
+            console.error("Storage upload error:", uploadError);
+            return;
+          }
 
-// Retrieve public URL from the correct bucket: kb-image
-const { data: urlData } = supabaseClient.storage
-  .from('kb-image')
-  .getPublicUrl(filePath);
+          const { data: urlData } = supabaseClient.storage.from('kb-image').getPublicUrl(filePath);
+          imageUrl = urlData.publicUrl;
+        }
 
-imageUrl = urlData.publicUrl;
-
-        // Insert payload
         const { data, error } = await supabaseClient.from('articles').insert([
           {
             title: title,

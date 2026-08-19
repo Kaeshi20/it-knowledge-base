@@ -23,7 +23,6 @@
 
   <!-- 1. FULLSCREEN AUTHENTICATION PAGE (VISIBLE BY DEFAULT) -->
   <div id="authView" class="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-    <div id="authView" class="min-h-screen bg-slate-900 flex items-center justify-center p-4 hidden"></div>
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
       <div class="text-center mb-6">
         <div class="inline-block bg-indigo-600 text-white p-3 rounded-xl font-bold text-2xl mb-2">IT</div>
@@ -204,45 +203,76 @@
       }
     }
 
- // Make sure currentCategory is defined globally at the top of your script
-let currentCategory = 'All';
+    // CATEGORY FILTERING
+    function filterCategory(categoryName) {
+      currentCategory = categoryName;
 
-// 1. Updated Category Switcher
-function filterCategory(categoryName) {
-  currentCategory = categoryName;
+      // Ensure view returns to list/dashboard grid
+      showView('dashboardView');
 
-  // Show dashboard grid and hide full article view
-  document.getElementById('articleView')?.classList.add('hidden');
-  document.getElementById('dashboardView')?.classList.remove('hidden');
+      // Update button active UI
+      const buttons = document.querySelectorAll('.cat-btn');
+      buttons.forEach(btn => {
+        if (btn.innerText.includes(categoryName)) {
+          btn.className = "cat-btn active bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-medium";
+        } else if (!btn.id.includes('queueTab')) {
+          btn.className = "cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium";
+        }
+      });
 
-  // Fetch updated list
-  fetchArticles();
-}
+      fetchArticles();
+    }
 
-// 2. Updated Fetch Function using your exact column name 'category'
-async function fetchArticles() {
-  let query = supabaseClient
-    .from('articles')
-    .select('*')
-    .order('created_at', { ascending: false });
+    // FETCH ARTICLES WITH FILTERS & SEARCH
+    async function fetchArticles() {
+      const searchInput = document.getElementById('searchInput')?.value?.trim();
 
-  // Filter by category if a specific one is selected
-  if (currentCategory && currentCategory !== 'All') {
-    query = query.eq('category', currentCategory);
-  }
+      let query = supabaseClient
+        .from('articles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  const { data: articles, error } = await query;
+      // Handle Category or Review Queue logic
+      if (currentCategory === 'Queue') {
+        query = query.eq('status', 'pending');
+      } else {
+        query = query.or('status.eq.published,status.is.null');
+        if (currentCategory && currentCategory !== 'All') {
+          query = query.eq('category', currentCategory);
+        }
+      }
 
-  if (error) {
-    console.error('Error fetching articles:', error);
-    return;
-  }
+      // Handle Search Input
+      if (searchInput) {
+        query = query.or(`title.ilike.%${searchInput}%,content.ilike.%${searchInput}%`);
+      }
 
-  // Render articles to dashboard (use your existing render function name if different)
-  if (typeof renderArticles === 'function') {
-    renderArticles(articles);
-  }
-}
+      const { data: articles, error } = await query;
+
+      if (error) {
+        console.error('Error fetching articles:', error);
+        return;
+      }
+
+      renderArticles(articles || []);
+      updateQueueCount();
+    }
+
+    // FETCH QUEUE COUNT FOR SUPERVISOR/ADMIN
+    async function updateQueueCount() {
+      if (userRole === 'Supervisor' || userRole === 'Admin') {
+        const { count, error } = await supabaseClient
+          .from('articles')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending');
+
+        if (!error) {
+          const queueCountElem = document.getElementById('queueCount');
+          if (queueCountElem) queueCountElem.innerText = count || 0;
+        }
+      }
+    }
+
     // RENDER CARDS TO DASHBOARD
     function renderArticles(articles) {
       const grid = document.getElementById('dashboardView');
@@ -454,34 +484,32 @@ async function fetchArticles() {
     }
 
     // CHECK EXISTING SESSION ON PAGE REFRESH
-async function checkUserSession() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  
-  if (session) {
-    currentUser = session.user;
-    userRole = currentUser.user_metadata?.role || 'IT Staff';
-    showAppUI();
-    fetchArticles();
-  } else {
-    // No active session, stay on authView
-    document.getElementById('authView').classList.remove('hidden');
-    document.getElementById('appContainer').classList.add('hidden');
-    
-  }
-}
+    async function checkUserSession() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      
+      if (session) {
+        currentUser = session.user;
+        userRole = currentUser.user_metadata?.role || 'IT Staff';
+        showAppUI();
+        fetchArticles();
+      } else {
+        document.getElementById('authView').classList.remove('hidden');
+        document.getElementById('appContainer').classList.add('hidden');
+      }
+    }
 
-// LISTEN FOR AUTH CHANGES (LOGOUT/LOGIN REFRESHES)
-supabaseClient.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT') {
-    currentUser = null;
-    userRole = 'IT Staff';
-    document.getElementById('appContainer').classList.add('hidden');
-    document.getElementById('authView').classList.remove('hidden');
-  }
-});
+    // LISTEN FOR AUTH CHANGES
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        currentUser = null;
+        userRole = 'IT Staff';
+        document.getElementById('appContainer').classList.add('hidden');
+        document.getElementById('authView').classList.remove('hidden');
+      }
+    });
 
-// REPLACE THE INITIAL fetchArticles() AT THE BOTTOM WITH THIS:
-checkUserSession();
+    // INITIAL LOAD CHECK
+    checkUserSession();
 
   </script>
 </body>

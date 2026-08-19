@@ -204,52 +204,44 @@
       }
     }
 
-   // CATEGORY FILTERING
+  // 1. Declare currentCategory globally at the top of your script if it isn't already
+let currentCategory = 'All'; 
+
+// 2. Updated filterCategory Function
 function filterCategory(categoryName) {
-  // 1. Force the app to show the dashboard grid and hide the article reader
+  // Update global variable
+  currentCategory = categoryName;
+
+  // Switch back to grid view if inside an article
   const articleView = document.getElementById('articleView');
   const dashboardView = document.getElementById('dashboardView');
 
   if (articleView) articleView.classList.add('hidden');
   if (dashboardView) dashboardView.classList.remove('hidden');
 
-  // 2. Set the global category variable (using currentCategory to match standard fetch syntax)
-  if (typeof currentCategory !== 'undefined') {
-    currentCategory = categoryName;
-  }
-  if (typeof selectedCategory !== 'undefined') {
-    selectedCategory = categoryName;
-  }
-
-  // 3. Fetch and display articles for the chosen category
-  fetchArticles(); 
+  // Trigger article fetch with new category filter
+  fetchArticles();
 }
 
-    // FETCH ARTICLES FROM SUPABASE
-    async function fetchArticles() {
-      const searchVal = document.getElementById('searchInput').value;
-      let query = supabaseClient.from('articles').select('*').order('created_at', { ascending: false });
+// 3. Make sure fetchArticles uses currentCategory in Supabase query
+async function fetchArticles() {
+  let query = supabaseClient.from('articles').select('*');
 
-      if (currentCategory === 'Queue') {
-        query = query.eq('status', 'pending');
-      } else {
-        query = query.eq('status', 'published');
-        if (currentCategory !== 'All') query = query.eq('category', currentCategory);
-      }
+  // If a category other than 'All' is selected, apply filter
+  if (currentCategory && currentCategory !== 'All') {
+    query = query.eq('category', currentCategory); // Ensure 'category' matches your table column name
+  }
 
-      if (searchVal) {
-        query = query.ilike('title', `%${searchVal}%`);
-      }
+  const { data: articles, error } = await query;
 
-      const { data: articles, error } = await query;
-      if (error) return console.error(error);
+  if (error) {
+    console.error('Error fetching articles:', error);
+    return;
+  }
 
-      // Update Queue Badge Counter
-      const { count } = await supabaseClient.from('articles').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-      document.getElementById('queueCount').innerText = count || 0;
-
-      renderArticles(articles);
-    }
+  // Render your articles here (using your existing render logic)
+  renderArticles(articles);
+}
 
     // RENDER CARDS TO DASHBOARD
     function renderArticles(articles) {

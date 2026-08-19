@@ -204,32 +204,31 @@
       }
     }
 
-  // 1. Declare currentCategory globally at the top of your script if it isn't already
-let currentCategory = 'All'; 
+ // Make sure currentCategory is defined globally at the top of your script
+let currentCategory = 'All';
 
-// 2. Updated filterCategory Function
+// 1. Updated Category Switcher
 function filterCategory(categoryName) {
-  // Update global variable
   currentCategory = categoryName;
 
-  // Switch back to grid view if inside an article
-  const articleView = document.getElementById('articleView');
-  const dashboardView = document.getElementById('dashboardView');
+  // Show dashboard grid and hide full article view
+  document.getElementById('articleView')?.classList.add('hidden');
+  document.getElementById('dashboardView')?.classList.remove('hidden');
 
-  if (articleView) articleView.classList.add('hidden');
-  if (dashboardView) dashboardView.classList.remove('hidden');
-
-  // Trigger article fetch with new category filter
+  // Fetch updated list
   fetchArticles();
 }
 
-// 3. Make sure fetchArticles uses currentCategory in Supabase query
+// 2. Updated Fetch Function using your exact column name 'category'
 async function fetchArticles() {
-  let query = supabaseClient.from('articles').select('*');
+  let query = supabaseClient
+    .from('articles')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-  // If a category other than 'All' is selected, apply filter
+  // Filter by category if a specific one is selected
   if (currentCategory && currentCategory !== 'All') {
-    query = query.eq('category', currentCategory); // Ensure 'category' matches your table column name
+    query = query.eq('category', currentCategory);
   }
 
   const { data: articles, error } = await query;
@@ -239,10 +238,11 @@ async function fetchArticles() {
     return;
   }
 
-  // Render your articles here (using your existing render logic)
-  renderArticles(articles);
+  // Render articles to dashboard (use your existing render function name if different)
+  if (typeof renderArticles === 'function') {
+    renderArticles(articles);
+  }
 }
-
     // RENDER CARDS TO DASHBOARD
     function renderArticles(articles) {
       const grid = document.getElementById('dashboardView');

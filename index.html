@@ -205,17 +205,23 @@
     }
 
     // CATEGORY FILTERING
-    function filterCategory(cat) {
-      currentCategory = cat;
-      document.querySelectorAll('.cat-btn').forEach(btn => {
-        btn.classList.remove('bg-indigo-600', 'text-white');
-        btn.classList.add('bg-white', 'text-slate-800');
-      });
-      if (event && event.target) {
-        event.target.classList.add('bg-indigo-600', 'text-white');
-      }
-      fetchArticles();
-    }
+    function filterCategory(categoryName) {
+  // 1. Reset views so the list is visible and detail view is hidden
+  const articleDetailView = document.getElementById('articleDetailView'); // Adjust ID to match your HTML
+  const articleListView = document.getElementById('articleListView');     // Adjust ID to match your HTML
+
+  if (articleDetailView) articleDetailView.classList.add('hidden');
+  if (articleListView) articleListView.classList.remove('hidden');
+
+  // 2. Update your active category state
+  selectedCategory = categoryName;
+
+  // 3. Highlight active UI tab (optional step if you have tab styling)
+  updateCategoryTabUI(categoryName);
+
+  // 4. Re-fetch or re-render articles filtered by category
+  fetchArticles(); 
+}
 
     // FETCH ARTICLES FROM SUPABASE
     async function fetchArticles() {

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IT Knowledge Base</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+  <script>
+    const SUPABASE_URL = 'https://wswhxeagkqaqggilbnmk.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_lgVCXvLGHSPfLfF_gkRXnA_hoUX2Sq-'; // Paste your full publishable key
+    
+    // Initialize with unique name
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let userRole = 'IT Staff';
+    let currentCategory = 'All';
+  </script>
+
+  <!-- 1. FULLSCREEN AUTHENTICATION PAGE (VISIBLE BY DEFAULT) -->
+  <div id="authView" class="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div id="authView" class="min-h-screen bg-slate-900 flex items-center justify-center p-4 hidden"></div>
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+      <div class="text-center mb-6">
+        <div class="inline-block bg-indigo-600 text-white p-3 rounded-xl font-bold text-2xl mb-2">IT</div>
+        <h2 class="text-2xl font-bold text-slate-800">Knowledge Base</h2>
+        <p class="text-slate-500 text-sm mt-1">Sign in or create an account to proceed</p>
+      </div>
+
+      <!-- TOGGLE TABS -->
+      <div class="flex border-b border-slate-200 mb-6">
+        <button id="tabLoginBtn" type="button" onclick="switchAuthTab('login')" class="flex-1 py-2 font-semibold text-indigo-600 border-b-2 border-indigo-600 transition">Login</button>
+        <button id="tabRegisterBtn" type="button" onclick="switchAuthTab('register')" class="flex-1 py-2 font-semibold text-slate-400 hover:text-slate-600 transition">Register</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+          <input type="email" id="loginEmail" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+          <input type="password" id="loginPassword" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition">Sign In</button>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+          <input type="email" id="regEmail" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+          <input type="password" id="regPassword" required minlength="6" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Role</label>
+          <select id="regRole" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+            <option value="IT Staff">IT Staff</option>
+            <option value="IT Senior">IT Senior</option>
+            <option value="Supervisor">Supervisor</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. MAIN APP CONTENT (HIDDEN UNTIL LOGGED IN) -->
+  <div id="appContainer" class="hidden">
+    <!-- NAVBAR -->
+    <nav class="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-50">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="showView('dashboardView')">
+        <div class="bg-indigo-600 p-2 rounded-lg font-bold">IT</div>
+        <h1 class="text-xl font-bold tracking-wide">Knowledge Base</h1>
+      </div>
+      
+      <div id="navRight" class="flex gap-3 items-center">
+        <span id="userBadge" class="text-xs bg-slate-800 px-3 py-1 rounded-full border border-slate-700"></span>
+        <button id="authBtn" onclick="handleLogout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-semibold transition">Logout</button>
+      </div>
+    </nav>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto p-6">
+
+      <!-- TOP CONTROL BAR -->
+      <div class="flex flex-col md:flex-row justify-between gap-4 mb-8">
+        <!-- Search Bar -->
+        <div class="relative flex-1">
+          <input type="text" id="searchInput" oninput="fetchArticles()" placeholder="Search KB articles..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <svg class="w-5 h-5 absolute left-3 top-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-2">
+          <button onclick="openNewArticleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-medium shadow-sm transition flex items-center gap-2">
+            <span>+ Add Knowledge</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- CATEGORY FILTERS -->
+      <div class="flex gap-2 overflow-x-auto pb-4 mb-6 border-b border-slate-200">
+        <button onclick="filterCategory('All')" class="cat-btn active bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-medium">All</button>
+        <button onclick="filterCategory('Networking')" class="cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium">Networking</button>
+        <button onclick="filterCategory('Hardware')" class="cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium">Hardware</button>
+        <button onclick="filterCategory('Software')" class="cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium">Software</button>
+        <button onclick="filterCategory('Security')" class="cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium">Security</button>
+        <button id="queueTab" onclick="filterCategory('Queue')" class="cat-btn bg-amber-100 text-amber-800 border border-amber-300 px-4 py-1.5 rounded-full text-sm font-medium hidden"> Review Queue (<span id="queueCount">0</span>)</button>
+      </div>
+
+      <!-- VIEW 1: DASHBOARD / ARTICLES GRID -->
+      <section id="dashboardView" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Dynamic Article Cards Load Here -->
+      </section>
+
+      <!-- VIEW 2: ARTICLE READER VIEW (Dedicated Page) -->
+      <section id="articleView" class="hidden bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+        <button onclick="showView('dashboardView')" class="text-sm text-indigo-600 font-semibold mb-4 inline-flex items-center gap-1">&larr; Back to Articles</button>
+        <div id="articleDetail"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL: ADD ARTICLE -->
+  <div id="articleModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex justify-center items-center p-4 z-50">
+    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 relative">
+      <h3 class="text-xl font-bold mb-4">Submit New Knowledge Base Article</h3>
+      <form id="articleForm" onsubmit="handleArticleSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Title</label>
+          <input type="text" id="artTitle" required class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Category</label>
+          <select id="artCategory" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option>Networking</option>
+            <option>Hardware</option>
+            <option>Software</option>
+            <option>Security</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Attach Image</label>
+          <input type="file" id="artImage" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Content (Markdown / Detailed Procedure)</label>
+          <textarea id="artContent" rows="6" required class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+        </div>
+        <p class="text-xs text-amber-600 font-medium">* Note: Article will be sent to the Supervisor Review Queue before publishing.</p>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" onclick="closeModal('articleModal')" class="px-4 py-2 text-slate-600">Cancel</button>
+          <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium">Submit for Approval</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    // VIEW SWITCHER
+    function showView(viewId) {
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('articleView').classList.add('hidden');
+      document.getElementById(viewId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function openNewArticleModal() {
+      document.getElementById('articleModal').classList.remove('hidden');
+    }
+
+    // SWITCH AUTH TAB (Login / Register)
+    function switchAuthTab(type) {
+      const loginForm = document.getElementById('loginForm');
+      const registerForm = document.getElementById('registerForm');
+      const tabLoginBtn = document.getElementById('tabLoginBtn');
+      const tabRegisterBtn = document.getElementById('tabRegisterBtn');
+
+      if (type === 'login') {
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+        tabLoginBtn.className = "flex-1 py-2 font-semibold text-indigo-600 border-b-2 border-indigo-600 transition";
+        tabRegisterBtn.className = "flex-1 py-2 font-semibold text-slate-400 hover:text-slate-600 transition";
+      } else {
+        registerForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+        tabRegisterBtn.className = "flex-1 py-2 font-semibold text-indigo-600 border-b-2 border-indigo-600 transition";
+        tabLoginBtn.className = "flex-1 py-2 font-semibold text-slate-400 hover:text-slate-600 transition";
+      }
+    }
+
+    // CATEGORY FILTERING
+    function filterCategory(cat) {
+      currentCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white');
+        btn.classList.add('bg-white', 'text-slate-800');
+      });
+      if (event && event.target) {
+        event.target.classList.add('bg-indigo-600', 'text-white');
+      }
+      fetchArticles();
+    }
+
+    // FETCH ARTICLES FROM SUPABASE
+    async function fetchArticles() {
+      const searchVal = document.getElementById('searchInput').value;
+      let query = supabaseClient.from('articles').select('*').order('created_at', { ascending: false });
+
+      if (currentCategory === 'Queue') {
+        query = query.eq('status', 'pending');
+      } else {
+        query = query.eq('status', 'published');
+        if (currentCategory !== 'All') query = query.eq('category', currentCategory);
+      }
+
+      if (searchVal) {
+        query = query.ilike('title', `%${searchVal}%`);
+      }
+
+      const { data: articles, error } = await query;
+      if (error) return console.error(error);
+
+      // Update Queue Badge Counter
+      const { count } = await supabaseClient.from('articles').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      document.getElementById('queueCount').innerText = count || 0;
+
+      renderArticles(articles);
+    }
+
+    // RENDER CARDS TO DASHBOARD
+    function renderArticles(articles) {
+      const grid = document.getElementById('dashboardView');
+      grid.innerHTML = '';
+
+      if (articles.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400">No articles found in this category.</div>`;
+        return;
+      }
+
+      articles.forEach(art => {
+        const isQueue = art.status === 'pending';
+        const isSupervisor = (userRole === 'Supervisor' || userRole === 'Admin');
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between cursor-pointer";
+        
+        card.innerHTML = `
+          <div>
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-xs font-bold px-2.5 py-1 rounded-md ${isQueue ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-600'}">${art.category}</span>
+              <span class="text-xs text-slate-400">${new Date(art.created_at).toLocaleDateString()}</span>
+            </div>
+            <h3 class="font-bold text-lg text-slate-900 mb-2">${art.title}</h3>
+            <p class="text-slate-600 text-sm line-clamp-3 mb-4">${art.content}</p>
+          </div>
+
+          ${isQueue && isSupervisor ? `
+            <div class="flex gap-2 pt-3 border-t border-slate-100">
+              <button onclick="event.stopPropagation(); approveArticle(${art.id})" class="flex-1 bg-emerald-600 text-white text-xs font-bold py-2 rounded-lg">Approve</button>
+              <button onclick="event.stopPropagation(); rejectArticle(${art.id})" class="flex-1 bg-rose-600 text-white text-xs font-bold py-2 rounded-lg">Reject</button>
+            </div>
+          ` : ''}
+        `;
+
+        card.onclick = () => openArticlePage(art);
+        grid.appendChild(card);
+      });
+    }
+
+    // OPEN SINGLE ARTICLE PAGE
+    function openArticlePage(art) {
+      const detail = document.getElementById('articleDetail');
+      const isSupervisor = (userRole === 'Supervisor' || userRole === 'Admin');
+      
+      detail.innerHTML = `
+        <div class="flex justify-between items-start mb-4">
+          <span class="bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1 rounded-full">${art.category}</span>
+          ${isSupervisor ? `<button onclick="deleteArticle(${art.id})" class="text-rose-600 text-sm font-semibold">Delete</button>` : ''}
+        </div>
+        <h1 class="text-3xl font-extrabold text-slate-900 mb-2">${art.title}</h1>
+        <div class="text-xs text-slate-400 mb-6">By ${art.author_email || 'IT Staff'} • ${new Date(art.created_at).toLocaleString()}</div>
+        ${art.image_url ? `<img src="${art.image_url}" class="max-h-96 w-full object-cover rounded-xl mb-6 shadow-sm">` : ''}
+        <div class="prose max-w-none text-slate-700 whitespace-pre-line leading-relaxed">${art.content}</div>
+      `;
+      showView('articleView');
+    }
+
+    // SUBMIT NEW ARTICLE WITH IMAGE UPLOAD
+    async function handleArticleSubmit(e) {
+      e.preventDefault();
+
+      try {
+        const title = document.getElementById('artTitle').value;
+        const category = document.getElementById('artCategory').value;
+        const content = document.getElementById('artContent').value;
+        const fileInput = document.getElementById('artImage');
+        let imageUrl = null;
+
+        // Optional image upload
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          const filePath = `public/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+          
+          const { data: uploadData, error: uploadError } = await supabaseClient.storage
+            .from('kb-images')
+            .upload(filePath, file);
+
+          if (!uploadError) {
+            const { data: urlData } = supabaseClient.storage.from('kb-images').getPublicUrl(filePath);
+            imageUrl = urlData.publicUrl;
+          }
+        }
+
+        // Insert payload
+        const { data, error } = await supabaseClient.from('articles').insert([
+          {
+            title: title,
+            category: category,
+            content: content,
+            image_url: imageUrl,
+            status: 'pending',
+            author_email: currentUser ? currentUser.email : 'tech@company.com'
+          }
+        ]);
+
+        if (error) {
+          alert("SUPABASE ERROR:\nCode: " + error.code + "\nMessage: " + error.message + "\nDetails: " + (error.details || 'None'));
+          console.error("Full Supabase Insert Error:", error);
+        } else {
+          alert('Submitted successfully! Article sent to Supervisor Review Queue.');
+          closeModal('articleModal');
+          document.getElementById('articleForm').reset();
+          fetchArticles();
+        }
+      } catch (err) {
+        alert("System Error: " + err.message);
+      }
+    }
+
+    // SUPERVISOR APPROVAL ACTIONS
+    async function approveArticle(id) {
+      await supabaseClient.from('articles').update({ status: 'published' }).eq('id', id);
+      fetchArticles();
+    }
+
+    async function rejectArticle(id) {
+      const reason = prompt('Enter rejection feedback for the Tech:');
+      if (reason) {
+        await supabaseClient.from('articles').update({ status: 'rejected', feedback: reason }).eq('id', id);
+        fetchArticles();
+      }
+    }
+
+    async function deleteArticle(id) {
+      if (confirm('Permanently delete this article?')) {
+        await supabaseClient.from('articles').delete().eq('id', id);
+        showView('dashboardView');
+        fetchArticles();
+      }
+    }
+
+    // HANDLE USER REGISTRATION
+    async function handleRegister(e) {
+      e.preventDefault();
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPassword').value;
+      const role = document.getElementById('regRole').value;
+
+      const { data, error } = await supabaseClient.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: { role: role }
+        }
+      });
+
+      if (error) {
+        alert("Registration Failed: " + error.message);
+      } else {
+        alert(`Account created successfully as ${role}! You can now sign in.`);
+        switchAuthTab('login');
+        document.getElementById('registerForm').reset();
+      }
+    }
+
+    // HANDLE USER LOGIN
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+      if (error) {
+        alert("Login Failed: " + error.message);
+      } else {
+        currentUser = data.user;
+        userRole = data.user.user_metadata?.role || 'IT Staff';
+        
+        showAppUI();
+        fetchArticles();
+      }
+    }
+
+    // SHOW MAIN DASHBOARD UI
+    function showAppUI() {
+      document.getElementById('authView').classList.add('hidden');
+      document.getElementById('appContainer').classList.remove('hidden');
+      
+      const userBadge = document.getElementById('userBadge');
+      if (currentUser) {
+        userBadge.innerText = `${currentUser.email} (${userRole})`;
+      }
+
+      updateUIForRole();
+    }
+
+    // UPDATE UI PERMISSIONS BASED ON ROLE
+    function updateUIForRole() {
+      const queueTab = document.getElementById('queueTab');
+      if (userRole === 'Supervisor' || userRole === 'Admin') {
+        if (queueTab) queueTab.classList.remove('hidden');
+      } else {
+        if (queueTab) queueTab.classList.add('hidden');
+      }
+    }
+
+    // LOGOUT FUNCTION
+    async function handleLogout() {
+      await supabaseClient.auth.signOut();
+      currentUser = null;
+      userRole = 'IT Staff';
+      document.getElementById('appContainer').classList.add('hidden');
+      document.getElementById('authView').classList.remove('hidden');
+      document.getElementById('loginForm').reset();
+    }
+
+    // CHECK EXISTING SESSION ON PAGE REFRESH
+async function checkUserSession() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  
+  if (session) {
+    currentUser = session.user;
+    userRole = currentUser.user_metadata?.role || 'IT Staff';
+    showAppUI();
+    fetchArticles();
+  } else {
+    // No active session, stay on authView
+    document.getElementById('authView').classList.remove('hidden');
+    document.getElementById('appContainer').classList.add('hidden');
+    
+  }
+}
+
+// LISTEN FOR AUTH CHANGES (LOGOUT/LOGIN REFRESHES)
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT') {
+    currentUser = null;
+    userRole = 'IT Staff';
+    document.getElementById('appContainer').classList.add('hidden');
+    document.getElementById('authView').classList.remove('hidden');
+  }
+});
+
+// REPLACE THE INITIAL fetchArticles() AT THE BOTTOM WITH THIS:
+checkUserSession();
+
+  </script>
+</body>
+</html>

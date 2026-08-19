@@ -11,7 +11,7 @@
 
   <script>
     const SUPABASE_URL = 'https://wswhxeagkqaqggilbnmk.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_lgVCXvLGHSPfLfF_gkRXnA_hoUX2Sq-'; // Paste your full publishable key
+    const SUPABASE_KEY = 'sb_publishable_lgVCXvLGHSPfLfF_gkRXnA_hoUX2Sq-';
     
     // Initialize Supabase Client
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -362,7 +362,10 @@
 
     // SUBMIT NEW ARTICLE WITH IMAGE UPLOAD
     async function handleArticleSubmit(e) {
-      if (e) e.preventDefault();
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
 
       try {
         const title = document.getElementById('artTitle').value;
@@ -438,7 +441,11 @@
 
     // HANDLE USER REGISTRATION
     async function handleRegister(e) {
-      if (e) e.preventDefault();
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
       const email = document.getElementById('regEmail').value.trim();
       const password = document.getElementById('regPassword').value.trim();
       const role = document.getElementById('regRole').value;
@@ -462,9 +469,21 @@
 
     // HANDLE USER LOGIN
     async function handleLogin(e) {
-      if (e) e.preventDefault();
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value.trim();
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      const emailInput = document.getElementById('loginEmail');
+      const passwordInput = document.getElementById('loginPassword');
+
+      if (!emailInput || !passwordInput) {
+        alert("Login inputs not found in DOM.");
+        return;
+      }
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
 
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: email,

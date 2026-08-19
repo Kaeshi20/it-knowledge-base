@@ -13,15 +13,16 @@
     const SUPABASE_URL = 'https://wswhxeagkqaqggilbnmk.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_lgVCXvLGHSPfLfF_gkRXnA_hoUX2Sq-'; // Paste your full publishable key
     
-    // Initialize with unique name
+    // Initialize Supabase Client
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // Global App State Variables
     let currentUser = null;
     let userRole = 'IT Staff';
     let currentCategory = 'All';
   </script>
 
-  <!-- 1. FULLSCREEN AUTHENTICATION PAGE (VISIBLE BY DEFAULT) -->
+  <!-- 1. FULLSCREEN AUTHENTICATION PAGE -->
   <div id="authView" class="min-h-screen bg-slate-900 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
       <div class="text-center mb-6">
@@ -37,7 +38,7 @@
       </div>
 
       <!-- LOGIN FORM -->
-      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+      <form id="loginForm" onsubmit="handleLogin(event); return false;" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
           <input type="email" id="loginEmail" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
@@ -50,7 +51,7 @@
       </form>
 
       <!-- REGISTER FORM -->
-      <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+      <form id="registerForm" onsubmit="handleRegister(event); return false;" class="space-y-4 hidden">
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
           <input type="email" id="regEmail" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
@@ -73,7 +74,7 @@
     </div>
   </div>
 
-  <!-- 2. MAIN APP CONTENT (HIDDEN UNTIL LOGGED IN) -->
+  <!-- 2. MAIN APP CONTENT -->
   <div id="appContainer" class="hidden">
     <!-- NAVBAR -->
     <nav class="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-50">
@@ -122,7 +123,7 @@
         <!-- Dynamic Article Cards Load Here -->
       </section>
 
-      <!-- VIEW 2: ARTICLE READER VIEW (Dedicated Page) -->
+      <!-- VIEW 2: ARTICLE READER VIEW -->
       <section id="articleView" class="hidden bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
         <button onclick="showView('dashboardView')" class="text-sm text-indigo-600 font-semibold mb-4 inline-flex items-center gap-1">&larr; Back to Articles</button>
         <div id="articleDetail"></div>
@@ -135,7 +136,7 @@
   <div id="articleModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex justify-center items-center p-4 z-50">
     <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 relative">
       <h3 class="text-xl font-bold mb-4">Submit New Knowledge Base Article</h3>
-      <form id="articleForm" onsubmit="handleArticleSubmit(event)" class="space-y-4">
+      <form id="articleForm" onsubmit="handleArticleSubmit(event); return false;" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Title</label>
           <input type="text" id="artTitle" required class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
@@ -207,10 +208,10 @@
     function filterCategory(categoryName) {
       currentCategory = categoryName;
 
-      // Ensure view returns to list/dashboard grid
+      // Force view switch back to dashboard grid
       showView('dashboardView');
 
-      // Update button active UI
+      // Update active styling on category buttons
       const buttons = document.querySelectorAll('.cat-btn');
       buttons.forEach(btn => {
         if (btn.innerText.includes(categoryName)) {
@@ -232,7 +233,7 @@
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Handle Category or Review Queue logic
+      // Handle Queue vs Published filter
       if (currentCategory === 'Queue') {
         query = query.eq('status', 'pending');
       } else {
@@ -332,7 +333,7 @@
 
     // SUBMIT NEW ARTICLE WITH IMAGE UPLOAD
     async function handleArticleSubmit(e) {
-      e.preventDefault();
+      if (e) e.preventDefault();
 
       try {
         const title = document.getElementById('artTitle').value;
@@ -369,7 +370,7 @@
         ]);
 
         if (error) {
-          alert("SUPABASE ERROR:\nCode: " + error.code + "\nMessage: " + error.message + "\nDetails: " + (error.details || 'None'));
+          alert("SUPABASE ERROR:\nCode: " + error.code + "\nMessage: " + error.message);
           console.error("Full Supabase Insert Error:", error);
         } else {
           alert('Submitted successfully! Article sent to Supervisor Review Queue.');
@@ -406,9 +407,9 @@
 
     // HANDLE USER REGISTRATION
     async function handleRegister(e) {
-      e.preventDefault();
-      const email = document.getElementById('regEmail').value;
-      const password = document.getElementById('regPassword').value;
+      if (e) e.preventDefault();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value.trim();
       const role = document.getElementById('regRole').value;
 
       const { data, error } = await supabaseClient.auth.signUp({
@@ -430,9 +431,9 @@
 
     // HANDLE USER LOGIN
     async function handleLogin(e) {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail').value;
-      const password = document.getElementById('loginPassword').value;
+      if (e) e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
 
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: email,
@@ -441,7 +442,8 @@
 
       if (error) {
         alert("Login Failed: " + error.message);
-      } else {
+        console.error("Auth error details:", error);
+      } else if (data?.user) {
         currentUser = data.user;
         userRole = data.user.user_metadata?.role || 'IT Staff';
         

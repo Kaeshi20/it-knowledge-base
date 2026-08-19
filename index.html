@@ -347,15 +347,23 @@
           const file = fileInput.files[0];
           const filePath = `public/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
           
-          const { data: uploadData, error: uploadError } = await supabaseClient.storage
-            .from('kb-image')
-            .upload(filePath, file);
+          // Upload to the correct bucket: kb-image
+const { data: uploadData, error: uploadError } = await supabaseClient.storage
+  .from('kb-image')
+  .upload(filePath, file);
 
-          if (!uploadError) {
-            const { data: urlData } = supabaseClient.storage.from('kb-image').getPublicUrl(filePath);
-            imageUrl = urlData.publicUrl;
-          }
-        }
+if (uploadError) {
+  console.error("Storage Upload Error:", uploadError);
+  alert("Image upload failed: " + uploadError.message);
+  return;
+}
+
+// Retrieve public URL from the correct bucket: kb-image
+const { data: urlData } = supabaseClient.storage
+  .from('kb-image')
+  .getPublicUrl(filePath);
+
+imageUrl = urlData.publicUrl;
 
         // Insert payload
         const { data, error } = await supabaseClient.from('articles').insert([

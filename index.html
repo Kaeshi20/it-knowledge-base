@@ -207,8 +207,8 @@
     // CATEGORY FILTERING
     function filterCategory(categoryName) {
   // 1. Reset views so the list is visible and detail view is hidden
-  const articleDetailView = document.getElementById('articleDetailView'); // Adjust ID to match your HTML
-  const articleListView = document.getElementById('articleListView');     // Adjust ID to match your HTML
+  const articleDetailView = document.getElementById('articleView'); // Adjust ID to match your HTML
+  const articleListView = document.getElementById('dashboardView');     // Adjust ID to match your HTML
 
   if (articleDetailView) articleDetailView.classList.add('hidden');
   if (articleListView) articleListView.classList.remove('hidden');

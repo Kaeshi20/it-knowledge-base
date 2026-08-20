@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IT Knowledge Base</title>
+  <title>KB Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
   <!-- AUTHENTICATION VIEW -->
   <div id="authView" class="min-h-screen flex items-center justify-center p-4">
@@ -60,31 +60,32 @@
   </div>
 
   <!-- MAIN APP CONTAINER -->
-  <div id="appContainer" class="hidden min-h-screen flex flex-col">
+  <div id="appContainer" class="hidden flex-col min-h-screen w-full">
     
-    <!-- NAVIGATION BAR -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <!-- CLEAN WHITE NAVIGATION BAR (PIC 2 DESIGN) -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        <div class="flex items-center gap-6">
+        <!-- Left Brand & Navigation Tabs -->
+        <div class="flex items-center gap-8">
           <h1 onclick="filterCategory('All')" class="text-xl font-black text-slate-900 tracking-tight cursor-pointer">KB Portal</h1>
           
-          <nav class="hidden md:flex gap-2">
-            <button onclick="filterCategory('All')" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg transition">Dashboard</button>
-            <button onclick="openMyUploadsView()" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg transition">My Uploads</button>
-            <button id="historyBtn" onclick="openApprovalHistory()" class="hidden text-sm font-semibold text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg transition items-center gap-1">Audit History</button>
+          <nav class="flex items-center gap-6">
+            <button onclick="filterCategory('All')" class="text-sm font-semibold text-slate-800 hover:text-indigo-600 transition">Dashboard</button>
+            <button onclick="openMyUploadsView()" class="text-sm font-medium text-slate-500 hover:text-slate-800 transition">My Uploads</button>
           </nav>
         </div>
 
-        <div class="flex items-center gap-4">
-          <!-- Notification Bell Dropdown -->
+        <!-- Right User Control Actions -->
+        <div class="flex items-center gap-5">
+          <!-- Notification Bell -->
           <div class="relative">
-            <button onclick="toggleNotifDropdown(event)" class="relative p-2 text-slate-500 hover:text-indigo-600 transition">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-              <span id="notifBadge" class="hidden absolute top-1 right-1 bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+            <button onclick="toggleNotifDropdown(event)" class="relative p-2 text-slate-400 hover:text-slate-600 transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+              <span id="notifBadge" class="hidden absolute top-0 right-0 bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
             </button>
 
-            <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
+            <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white text-slate-800 rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
               <div class="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <span class="font-bold text-xs uppercase tracking-wider text-slate-600">Notifications</span>
                 <button onclick="clearNotifications()" class="text-[10px] text-rose-600 font-bold hover:underline">Clear All</button>
@@ -93,72 +94,84 @@
             </div>
           </div>
 
-          <button onclick="openNewArticleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition">+ New Article</button>
-          
-          <div class="h-6 w-px bg-slate-200"></div>
+          <!-- New Article Primary CTA Button -->
+          <button onclick="openNewArticleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm">
+            + New Article
+          </button>
 
-          <div class="flex items-center gap-2">
-            <span id="userBadge" class="text-xs font-semibold text-slate-600">User</span>
-            <button onclick="handleLogout()" class="text-xs font-bold text-rose-600 hover:underline">Logout</button>
-          </div>
+          <!-- Audit History Log Button (Supervisors/Admins) -->
+          <button id="historyBtn" onclick="openApprovalHistory()" class="hidden text-xs font-medium text-slate-500 hover:text-slate-800 transition">Audit Logs</button>
+
+          <!-- User Email Badge -->
+          <span id="userBadge" class="text-xs text-slate-500 font-medium">User</span>
+
+          <!-- Logout Button -->
+          <button onclick="handleLogout()" class="text-xs font-bold text-rose-600 hover:text-rose-700 transition">Logout</button>
         </div>
 
       </div>
     </header>
 
-    <!-- DASHBOARD CONTROL & CATEGORY BARS -->
-    <div id="dashboardControlBar" class="bg-white border-b border-slate-200 py-3">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div class="relative w-full sm:w-96">
-          <input type="text" id="searchInput" onkeyup="fetchArticles()" placeholder="Search articles..." class="w-full pl-9 pr-4 py-1.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-        </div>
-      </div>
-    </div>
-
-    <div id="categoryBar" class="bg-slate-50 border-b border-slate-200 py-2.5">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-2 overflow-x-auto">
-        <button onclick="filterCategory('All')" class="cat-btn active bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-medium">All</button>
-        <button onclick="filterCategory('Hardware')" class="cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium">Hardware</button>
-        <button onclick="filterCategory('Software')" class="cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium">Software</button>
-        <button onclick="filterCategory('Network')" class="cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium">Network</button>
-        <button id="queueTab" onclick="filterCategory('Queue')" class="hidden cat-btn bg-amber-100 text-amber-900 border border-amber-300 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5">
-          Review Queue <span id="queueCount" class="bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- MAIN VIEWS CONTAINER -->
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <!-- CONTENT WRAPPER -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 flex flex-col">
       
-      <!-- DASHBOARD VIEW -->
-      <div id="dashboardView" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-
-      <!-- MY UPLOADS VIEW -->
-      <div id="myUploadsView" class="hidden">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h2 class="text-2xl font-black text-slate-900">My Uploads History</h2>
-            <p class="text-xs text-slate-500">Track and manage your submitted documentation</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <input type="text" id="myUploadsSearchInput" onkeyup="filterMyUploads()" placeholder="Search my uploads..." class="px-3 py-1.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-            <button onclick="confirmDeleteAllMyUploads()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold px-3 py-2 rounded-xl transition">Delete All</button>
-          </div>
+      <!-- SEARCH BAR -->
+      <div id="searchContainer" class="mb-6 w-full max-w-md">
+        <div class="relative">
+          <input type="text" id="searchInput" onkeyup="fetchArticles()" placeholder="Search articles..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-sm">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
-        <div id="myUploadsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
       </div>
 
-      <!-- SINGLE ARTICLE DETAIL VIEW -->
-      <div id="articleView" class="hidden bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
-        <button onclick="showView('dashboardView')" class="text-xs font-bold text-indigo-600 hover:underline mb-6 flex items-center gap-1">← Back to Dashboard</button>
-        <div id="articleDetail"></div>
+      <!-- CATEGORY FILTER BAR (RESTORED SECURITY CATEGORY) -->
+      <div id="categoryBar" class="mb-8 w-full">
+        <div class="flex gap-2 overflow-x-auto pb-1">
+          <button onclick="filterCategory('All')" class="cat-btn active bg-indigo-600 text-white px-5 py-1.5 rounded-full text-xs font-semibold shadow-sm">All</button>
+          <button onclick="filterCategory('Hardware')" class="cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300">Hardware</button>
+          <button onclick="filterCategory('Software')" class="cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300">Software</button>
+          <button onclick="filterCategory('Network')" class="cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300">Network</button>
+          <button onclick="filterCategory('Security')" class="cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300">Security</button>
+          
+          <button id="queueTab" onclick="filterCategory('Queue')" class="hidden cat-btn bg-amber-100 text-amber-900 border border-amber-300 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5">
+            Review Queue <span id="queueCount" class="bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+          </button>
+        </div>
       </div>
 
-    </main>
+      <!-- MAIN DASHBOARD GRID (FULL WIDTH BALANCED GRID) -->
+      <main class="w-full flex-1">
+        
+        <!-- DASHBOARD VIEW -->
+        <div id="dashboardView" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full items-start"></div>
+
+        <!-- MY UPLOADS VIEW -->
+        <div id="myUploadsView" class="hidden w-full">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 class="text-2xl font-black text-slate-900">My Uploads History</h2>
+              <p class="text-xs text-slate-500">Track your submitted articles, review statuses, and feedback.</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button onclick="filterCategory('All')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl transition">← Back to KB Dashboard</button>
+              <input type="text" id="myUploadsSearchInput" onkeyup="filterMyUploads()" placeholder="Search my uploads..." class="px-3 py-2 border border-slate-300 bg-white rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <button onclick="confirmDeleteAllMyUploads()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold px-3 py-2 rounded-xl transition">Delete All</button>
+            </div>
+          </div>
+          <div id="myUploadsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full items-start"></div>
+        </div>
+
+        <!-- SINGLE ARTICLE DETAIL VIEW -->
+        <div id="articleView" class="hidden bg-white rounded-2xl p-8 border border-slate-200 shadow-sm w-full">
+          <button onclick="showView('dashboardView')" class="text-xs font-bold text-indigo-600 hover:underline mb-6 flex items-center gap-1">← Back to KB Dashboard</button>
+          <div id="articleDetail"></div>
+        </div>
+
+      </main>
+    </div>
+
   </div>
 
-  <!-- NEW ARTICLE MODAL -->
+  <!-- NEW ARTICLE MODAL (RESTORED SECURITY OPTION IN CATEGORY DROPDOWN) -->
   <div id="articleModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-xl w-full p-6 border border-slate-200 shadow-2xl">
       <div class="flex justify-between items-center mb-4">
@@ -177,6 +190,7 @@
             <option value="Hardware">Hardware</option>
             <option value="Software">Software</option>
             <option value="Network">Network</option>
+            <option value="Security">Security</option>
           </select>
         </div>
         <div>
@@ -223,7 +237,7 @@
     let currentCategory = 'All';
     let userNotifications = [];
     let myArticlesCache = [];
-    let notificationsHasBeenSeen = false; // TRACKS IF USER OPENED BELL THIS SESSION
+    let notificationsHasBeenSeen = false;
 
     // VIEW SWITCHER
     function showView(viewId) {
@@ -235,10 +249,10 @@
 
       if (viewId === 'dashboardView') {
         document.getElementById('categoryBar').classList.remove('hidden');
-        document.getElementById('dashboardControlBar').classList.remove('hidden');
+        document.getElementById('searchContainer').classList.remove('hidden');
       } else {
         document.getElementById('categoryBar').classList.add('hidden');
-        document.getElementById('dashboardControlBar').classList.add('hidden');
+        document.getElementById('searchContainer').classList.add('hidden');
       }
     }
 
@@ -263,7 +277,7 @@
       document.getElementById('articleModal').classList.remove('hidden');
     }
 
-    // TOGGLE NOTIFICATION DROPDOWN & PERSISTENT READ STATE
+    // TOGGLE NOTIFICATION DROPDOWN
     function toggleNotifDropdown(e) {
       if (e) e.stopPropagation();
       const dropdown = document.getElementById('notifDropdown');
@@ -272,7 +286,7 @@
       dropdown.classList.toggle('hidden');
 
       if (isOpening) {
-        notificationsHasBeenSeen = true; // Mark as seen globally
+        notificationsHasBeenSeen = true;
         document.getElementById('notifBadge').classList.add('hidden');
       }
     }
@@ -309,7 +323,6 @@
       const list = document.getElementById('notifList');
 
       if (userLogs.length > 0) {
-        // Respect seen state so tab switching doesn't reset badge
         if (!notificationsHasBeenSeen) {
           badge.classList.remove('hidden');
           badge.innerText = userLogs.length;
@@ -331,13 +344,11 @@
       }
     }
 
-    // CLICK NOTIFICATION: REDIRECT TO MY UPLOADS
     function clickNotificationItem() {
       document.getElementById('notifDropdown').classList.add('hidden');
       openMyUploadsView();
     }
 
-    // CLEAR ALL NOTIFICATIONS
     async function clearNotifications() {
       if (!userNotifications || userNotifications.length === 0) return;
 
@@ -409,7 +420,7 @@
         const isQueue = art.status === 'pending';
         const isSupervisor = isElevatedUser();
         const card = document.createElement('div');
-        card.className = "bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between cursor-pointer";
+        card.className = "bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between cursor-pointer w-full h-full";
         
         const cleanTitle = (art.title || 'Untitled').replace(/'/g, "\\'");
 
@@ -478,7 +489,7 @@
       renderMyUploadsCards(filtered);
     }
 
-    // RENDER MY UPLOADS CARDS (CLICKABLE TO VIEW DETAILS)
+    // RENDER MY UPLOADS CARDS
     function renderMyUploadsCards(articles) {
       const grid = document.getElementById('myUploadsGrid');
       grid.innerHTML = '';
@@ -490,13 +501,13 @@
 
       articles.forEach(art => {
         const card = document.createElement('div');
-        card.className = "bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between relative cursor-pointer";
+        card.className = "bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between relative cursor-pointer w-full h-full";
 
-        let statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800">✅ Published</span>`;
+        let statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 flex items-center gap-1">✓ Published</span>`;
         if (art.status === 'pending') {
-          statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-800">⏳ Pending Approval</span>`;
+          statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 flex items-center gap-1">⏳ Pending</span>`;
         } else if (art.status === 'rejected') {
-          statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-rose-100 text-rose-800">❌ Rejected</span>`;
+          statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-rose-100 text-rose-800 flex items-center gap-1">✕ Rejected</span>`;
         }
 
         let cardHTML = `
@@ -518,7 +529,7 @@
         if (art.status === 'rejected' && art.feedback) {
           cardHTML += `
             <div class="mt-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
-              <strong class="font-bold block mb-1">Supervisor Feedback:</strong>
+              <strong class="font-bold block mb-1">Supervisor Rejection Feedback:</strong>
               "${art.feedback}"
             </div>
           `;
@@ -751,10 +762,10 @@
 
       const buttons = document.querySelectorAll('.cat-btn');
       buttons.forEach(btn => {
-        if (btn.innerText.includes(categoryName)) {
-          btn.className = "cat-btn active bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-medium";
+        if (btn.innerText.trim().toLowerCase() === categoryName.toLowerCase()) {
+          btn.className = "cat-btn active bg-indigo-600 text-white px-5 py-1.5 rounded-full text-xs font-semibold shadow-sm";
         } else if (!btn.id.includes('queueTab')) {
-          btn.className = "cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium";
+          btn.className = "cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300";
         }
       });
 
@@ -854,6 +865,7 @@
     function showAppUI() {
       document.getElementById('authView').classList.add('hidden');
       document.getElementById('appContainer').classList.remove('hidden');
+      document.getElementById('appContainer').classList.add('flex');
       
       const userBadge = document.getElementById('userBadge');
       if (currentUser) {
@@ -871,16 +883,10 @@
 
       if (isElevatedUser()) {
         if (queueTab) queueTab.classList.remove('hidden');
-        if (historyBtn) {
-          historyBtn.classList.remove('hidden');
-          historyBtn.classList.add('flex'); 
-        }
+        if (historyBtn) historyBtn.classList.remove('hidden');
       } else {
         if (queueTab) queueTab.classList.add('hidden');
-        if (historyBtn) {
-          historyBtn.classList.add('hidden');
-          historyBtn.classList.remove('flex');
-        }
+        if (historyBtn) historyBtn.classList.add('hidden');
       }
     }
 
@@ -891,6 +897,7 @@
       userRole = 'IT Staff';
       notificationsHasBeenSeen = false;
       document.getElementById('appContainer').classList.add('hidden');
+      document.getElementById('appContainer').classList.remove('flex');
       document.getElementById('authView').classList.remove('hidden');
       document.getElementById('loginForm').reset();
     }
@@ -907,6 +914,7 @@
       } else {
         document.getElementById('authView').classList.remove('hidden');
         document.getElementById('appContainer').classList.add('hidden');
+        document.getElementById('appContainer').classList.remove('flex');
       }
     }
 

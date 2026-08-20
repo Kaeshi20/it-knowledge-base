@@ -634,19 +634,26 @@
       updateUIForRole();
     }
 
-    // UPDATE UI PERMISSIONS BASED ON ROLE
-    function updateUIForRole() {
-      const queueTab = document.getElementById('queueTab');
-      const historyBtn = document.getElementById('historyBtn');
+   // UPDATE UI PERMISSIONS BASED ON ROLE
+function updateUIForRole() {
+  const queueTab = document.getElementById('queueTab');
+  const historyBtn = document.getElementById('historyBtn');
 
-      if (userRole === 'Supervisor' || userRole === 'Admin') {
-        if (queueTab) queueTab.classList.remove('hidden');
-        if (historyBtn) historyBtn.classList.remove('hidden');
-      } else {
-        if (queueTab) queueTab.classList.add('hidden');
-        if (historyBtn) historyBtn.classList.add('hidden');
-      }
-    }
+  // Case-insensitive role check
+  const normalizedRole = (userRole || '').toLowerCase();
+  const isElevated = normalizedRole === 'supervisor' || normalizedRole === 'admin';
+
+  if (isElevated) {
+    if (queueTab) queueTab.classList.remove('hidden');
+    if (historyBtn) historyBtn.classList.remove('hidden');
+    // Ensure flex layout is used when visible so it lines up with + Add Knowledge
+    if (historyBtn) historyBtn.classList.add('flex'); 
+  } else {
+    if (queueTab) queueTab.classList.add('hidden');
+    if (historyBtn) historyBtn.classList.add('hidden');
+    if (historyBtn) historyBtn.classList.remove('flex');
+  }
+}
 
     // LOGOUT FUNCTION
     async function handleLogout() {

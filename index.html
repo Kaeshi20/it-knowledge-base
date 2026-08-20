@@ -20,6 +20,7 @@
     let currentUser = null;
     let userRole = 'IT Staff';
     let currentCategory = 'All';
+    let userNotifications = [];
   </script>
 
   <!-- 1. FULLSCREEN AUTHENTICATION PAGE -->
@@ -83,7 +84,26 @@
         <h1 class="text-xl font-bold tracking-wide">Knowledge Base</h1>
       </div>
       
-      <div id="navRight" class="flex gap-3 items-center">
+      <div id="navRight" class="flex gap-4 items-center">
+        <!-- NOTIFICATION BELL -->
+        <div class="relative">
+          <button id="notifBellBtn" onclick="toggleNotifDropdown(event)" class="relative p-2 rounded-lg hover:bg-slate-800 transition focus:outline-none">
+            <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            <span id="notifBadge" class="hidden absolute top-1 right-1 bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full border-2 border-slate-900">0</span>
+          </button>
+
+          <!-- NOTIFICATION DROPDOWN MENU -->
+          <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 text-slate-800 z-50 overflow-hidden">
+            <div class="p-3 bg-slate-900 text-white flex justify-between items-center border-b border-slate-800">
+              <h4 class="font-bold text-sm">Notifications</h4>
+              <span class="text-xs text-slate-400" id="notifSubtext">Updates on your posts</span>
+            </div>
+            <div id="notifList" class="max-h-72 overflow-y-auto divide-y divide-slate-100">
+              <!-- Dynamic Notifications Load Here -->
+            </div>
+          </div>
+        </div>
+
         <span id="userBadge" class="text-xs bg-slate-800 px-3 py-1 rounded-full border border-slate-700"></span>
         <button id="authBtn" onclick="handleLogout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-semibold transition">Logout</button>
       </div>
@@ -102,8 +122,11 @@
 
         <!-- Action Buttons -->
         <div class="flex gap-2">
+          <button onclick="openMyUploadsView()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2 rounded-xl font-medium shadow-sm transition flex items-center gap-2">
+            📁 My Uploads
+          </button>
           <button id="historyBtn" onclick="openApprovalHistory()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl font-medium shadow-sm transition hidden items-center gap-2">
-            📜 History Log
+            📜 Audit Log
           </button>
           <button onclick="openNewArticleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-medium shadow-sm transition flex items-center gap-2">
             <span>+ Add Knowledge</span>
@@ -112,7 +135,7 @@
       </div>
 
       <!-- CATEGORY FILTERS -->
-      <div class="flex gap-2 overflow-x-auto pb-4 mb-6 border-b border-slate-200">
+      <div id="categoryBar" class="flex gap-2 overflow-x-auto pb-4 mb-6 border-b border-slate-200">
         <button onclick="filterCategory('All')" class="cat-btn active bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-medium">All</button>
         <button onclick="filterCategory('Networking')" class="cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium">Networking</button>
         <button onclick="filterCategory('Hardware')" class="cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium">Hardware</button>
@@ -126,7 +149,21 @@
         <!-- Dynamic Article Cards Load Here -->
       </section>
 
-      <!-- VIEW 2: ARTICLE READER VIEW -->
+      <!-- VIEW 2: MY UPLOADS VIEW -->
+      <section id="myUploadsView" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-900">My Uploads History</h2>
+            <p class="text-slate-500 text-sm">Track your submitted articles, review statuses, and feedback.</p>
+          </div>
+          <button onclick="showView('dashboardView')" class="text-sm bg-slate-200 hover:bg-slate-300 px-4 py-2 rounded-xl font-semibold">&larr; Back to KB Dashboard</button>
+        </div>
+        <div id="myUploadsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Dynamic User Articles Load Here -->
+        </div>
+      </section>
+
+      <!-- VIEW 3: ARTICLE READER VIEW -->
       <section id="articleView" class="hidden bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
         <button onclick="showView('dashboardView')" class="text-sm text-indigo-600 font-semibold mb-4 inline-flex items-center gap-1">&larr; Back to Articles</button>
         <div id="articleDetail"></div>
@@ -174,7 +211,7 @@
   <div id="historyModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex justify-center items-center p-4 z-50">
     <div class="bg-white w-full max-w-3xl rounded-2xl shadow-2xl p-6 relative max-h-[80vh] flex flex-col">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-xl font-bold text-slate-800">Supervisor Approval History Log</h3>
+        <h3 class="text-xl font-bold text-slate-800">Supervisor Audit History Log</h3>
         <button onclick="closeModal('historyModal')" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
       </div>
       <div id="historyList" class="overflow-y-auto flex-1 space-y-3 pr-2">
@@ -183,21 +220,21 @@
     </div>
   </div>
 
-  <!-- MODAL: IMAGE EXPAND LIGHTBOX -->
-  <div id="imageLightbox" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md hidden flex flex-col justify-center items-center p-4 z-50 cursor-pointer" onclick="closeImageLightbox()">
-    <div class="relative max-w-5xl max-h-[90vh]" onclick="event.stopPropagation()">
-      <button onclick="closeImageLightbox()" class="absolute -top-10 right-0 text-white hover:text-slate-300 font-bold text-sm bg-slate-800/80 px-3 py-1 rounded-full border border-slate-600 transition">✕ Close</button>
-      <img id="lightboxImage" src="" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain border border-slate-700">
-    </div>
-  </div>
-
   <!-- APPLICATION LOGIC -->
   <script>
     // VIEW SWITCHER
     function showView(viewId) {
       document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('myUploadsView').classList.add('hidden');
       document.getElementById('articleView').classList.add('hidden');
+      
       document.getElementById(viewId).classList.remove('hidden');
+
+      if (viewId === 'dashboardView') {
+        document.getElementById('categoryBar').classList.remove('hidden');
+      } else {
+        document.getElementById('categoryBar').classList.add('hidden');
+      }
     }
 
     function closeModal(modalId) {
@@ -221,56 +258,20 @@
       document.getElementById('articleModal').classList.remove('hidden');
     }
 
-    // IMAGE LIGHTBOX FUNCTIONS
-    function expandImage(url) {
-      const lightbox = document.getElementById('imageLightbox');
-      const lightboxImg = document.getElementById('lightboxImage');
-      lightboxImg.src = url;
-      lightbox.classList.remove('hidden');
+    // TOGGLE NOTIFICATION DROPDOWN
+    function toggleNotifDropdown(e) {
+      if (e) e.stopPropagation();
+      const dropdown = document.getElementById('notifDropdown');
+      dropdown.classList.toggle('hidden');
     }
 
-    function closeImageLightbox() {
-      document.getElementById('imageLightbox').classList.add('hidden');
-      document.getElementById('lightboxImage').src = '';
-    }
-
-    // SWITCH AUTH TAB (Login / Register)
-    function switchAuthTab(type) {
-      const loginForm = document.getElementById('loginForm');
-      const registerForm = document.getElementById('registerForm');
-      const tabLoginBtn = document.getElementById('tabLoginBtn');
-      const tabRegisterBtn = document.getElementById('tabRegisterBtn');
-
-      if (type === 'login') {
-        loginForm.classList.remove('hidden');
-        registerForm.classList.add('hidden');
-        tabLoginBtn.className = "flex-1 py-2 font-semibold text-indigo-600 border-b-2 border-indigo-600 transition";
-        tabRegisterBtn.className = "flex-1 py-2 font-semibold text-slate-400 hover:text-slate-600 transition";
-      } else {
-        registerForm.classList.remove('hidden');
-        loginForm.classList.add('hidden');
-        tabRegisterBtn.className = "flex-1 py-2 font-semibold text-indigo-600 border-b-2 border-indigo-600 transition";
-        tabLoginBtn.className = "flex-1 py-2 font-semibold text-slate-400 hover:text-slate-600 transition";
+    // CLOSE DROPDOWN WHEN CLICKED OUTSIDE
+    window.addEventListener('click', () => {
+      const dropdown = document.getElementById('notifDropdown');
+      if (dropdown && !dropdown.classList.contains('hidden')) {
+        dropdown.classList.add('hidden');
       }
-    }
-
-    // CATEGORY FILTERING
-    function filterCategory(categoryName) {
-      currentCategory = categoryName;
-
-      showView('dashboardView');
-
-      const buttons = document.querySelectorAll('.cat-btn');
-      buttons.forEach(btn => {
-        if (btn.innerText.includes(categoryName)) {
-          btn.className = "cat-btn active bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-medium";
-        } else if (!btn.id.includes('queueTab')) {
-          btn.className = "cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium";
-        }
-      });
-
-      fetchArticles();
-    }
+    });
 
     // HELPER: CHECK ELEVATED PERMISSIONS
     function isElevatedUser() {
@@ -278,7 +279,46 @@
       return role === 'supervisor' || role === 'admin';
     }
 
-    // FETCH ARTICLES WITH FILTERS & SEARCH
+    // FETCH NOTIFICATIONS FOR CURRENT USER
+    async function fetchUserNotifications() {
+      if (!currentUser) return;
+
+      // Fetch history entries for articles created by current user
+      const { data, error } = await supabaseClient
+        .from('approval_history')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error || !data) return;
+
+      // Filter logs meant for current user's articles
+      const userLogs = data.filter(item => item.article_author === currentUser.email);
+      userNotifications = userLogs;
+
+      const badge = document.getElementById('notifBadge');
+      const list = document.getElementById('notifList');
+
+      if (userLogs.length > 0) {
+        badge.classList.remove('hidden');
+        badge.innerText = userLogs.length;
+
+        list.innerHTML = userLogs.map(n => `
+          <div class="p-3 text-xs hover:bg-slate-50 transition ${n.action === 'approved' ? 'border-l-4 border-emerald-500' : 'border-l-4 border-rose-500'}">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold capitalize ${n.action === 'approved' ? 'text-emerald-600' : 'text-rose-600'}">Article ${n.action}</span>
+              <span class="text-[10px] text-slate-400">${new Date(n.created_at).toLocaleDateString()}</span>
+            </div>
+            <p class="font-medium text-slate-800 line-clamp-1">"${n.article_title || 'Article'}"</p>
+            ${n.feedback ? `<p class="text-slate-500 mt-1 italic bg-slate-100 p-1.5 rounded">"${n.feedback}"</p>` : ''}
+          </div>
+        `).join('');
+      } else {
+        badge.classList.add('hidden');
+        list.innerHTML = `<div class="p-4 text-xs text-center text-slate-400">No new notifications</div>`;
+      }
+    }
+
+    // FETCH PUBLIC ARTICLES FOR DASHBOARD
     async function fetchArticles() {
       const searchInput = document.getElementById('searchInput')?.value?.trim();
 
@@ -290,12 +330,8 @@
       if (currentCategory === 'Queue') {
         query = query.eq('status', 'pending');
       } else {
-        // Fetch published articles OR articles belonging to current user
-        if (currentUser) {
-          query = query.or(`status.eq.published,status.is.null,author_email.eq.${currentUser.email}`);
-        } else {
-          query = query.or('status.eq.published,status.is.null');
-        }
+        // PUBLIC DASHBOARD SHOWS PUBLISHED ARTICLES ONLY
+        query = query.or('status.eq.published,status.is.null');
         
         if (currentCategory && currentCategory !== 'All') {
           query = query.eq('category', currentCategory);
@@ -315,24 +351,10 @@
 
       renderArticles(articles || []);
       updateQueueCount();
+      fetchUserNotifications();
     }
 
-    // FETCH QUEUE COUNT FOR SUPERVISOR/ADMIN
-    async function updateQueueCount() {
-      if (isElevatedUser()) {
-        const { count, error } = await supabaseClient
-          .from('articles')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
-
-        if (!error) {
-          const queueCountElem = document.getElementById('queueCount');
-          if (queueCountElem) queueCountElem.innerText = count || 0;
-        }
-      }
-    }
-
-    // RENDER CARDS TO DASHBOARD
+    // RENDER CARDS TO MAIN DASHBOARD
     function renderArticles(articles) {
       const grid = document.getElementById('dashboardView');
       grid.innerHTML = '';
@@ -361,35 +383,74 @@
           </div>
         `;
 
-        // UPLOADER STATUS / FEEDBACK BANNER
-        if (currentUser && art.author_email === currentUser.email) {
-          if (art.status === 'rejected' && art.feedback) {
-            cardHTML += `
-              <div class="mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
-                <strong>⚠️ Rejected by Supervisor:</strong> ${art.feedback}
-              </div>
-            `;
-          } else if (art.status === 'pending') {
-            cardHTML += `
-              <div class="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-                ⏳ Under Supervisor Review
-              </div>
-            `;
-          }
-        }
-
-        // SUPERVISOR APPROVAL / REJECTION BUTTONS
+        // SUPERVISOR APPROVAL / REJECTION BUTTONS (ONLY IN REVIEW QUEUE TAB)
         if (isQueue && isSupervisor) {
           cardHTML += `
             <div class="flex gap-2 pt-3 border-t border-slate-100 mt-3">
-              <button onclick="event.stopPropagation(); approveArticle(${art.id}, '${cleanTitle}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg transition">Approve</button>
-              <button onclick="event.stopPropagation(); rejectArticle(${art.id}, '${cleanTitle}')" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 rounded-lg transition">Reject</button>
+              <button onclick="event.stopPropagation(); approveArticle(${art.id}, '${cleanTitle}', '${art.author_email}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg transition">Approve</button>
+              <button onclick="event.stopPropagation(); rejectArticle(${art.id}, '${cleanTitle}', '${art.author_email}')" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 rounded-lg transition">Reject</button>
             </div>
           `;
         }
 
         card.innerHTML = cardHTML;
         card.onclick = () => openArticlePage(art);
+        grid.appendChild(card);
+      });
+    }
+
+    // OPEN "MY UPLOADS" DEDICATED PAGE
+    async function openMyUploadsView() {
+      showView('myUploadsView');
+      const grid = document.getElementById('myUploadsGrid');
+      grid.innerHTML = '<div class="col-span-full text-center py-8 text-slate-400">Loading your submissions...</div>';
+
+      if (!currentUser) return;
+
+      const { data: articles, error } = await supabaseClient
+        .from('articles')
+        .select('*')
+        .eq('author_email', currentUser.email)
+        .order('created_at', { ascending: false });
+
+      if (error || !articles || articles.length === 0) {
+        grid.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400">You have not uploaded any articles yet.</div>';
+        return;
+      }
+
+      grid.innerHTML = '';
+      articles.forEach(art => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between";
+
+        let statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800">✅ Published</span>`;
+        if (art.status === 'pending') {
+          statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-800">⏳ Pending Approval</span>`;
+        } else if (art.status === 'rejected') {
+          statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-rose-100 text-rose-800">❌ Rejected</span>`;
+        }
+
+        let cardHTML = `
+          <div>
+            <div class="flex justify-between items-start mb-3">
+              ${statusBadge}
+              <span class="text-xs text-slate-400">${new Date(art.created_at).toLocaleDateString()}</span>
+            </div>
+            <h3 class="font-bold text-lg text-slate-900 mb-2">${art.title}</h3>
+            <p class="text-slate-600 text-sm line-clamp-3 mb-4">${art.content}</p>
+          </div>
+        `;
+
+        if (art.status === 'rejected' && art.feedback) {
+          cardHTML += `
+            <div class="mt-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
+              <strong class="font-bold block mb-1">Supervisor Rejection Feedback:</strong>
+              "${art.feedback}"
+            </div>
+          `;
+        }
+
+        card.innerHTML = cardHTML;
         grid.appendChild(card);
       });
     }
@@ -408,22 +469,9 @@
         <h1 class="text-3xl font-extrabold text-slate-900 mb-2">${art.title}</h1>
         <div class="text-xs text-slate-400 mb-6">By ${art.author_email || 'IT Staff'} • ${new Date(art.created_at).toLocaleString()}</div>
         
-        ${art.status === 'rejected' && art.feedback ? `
-          <div class="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900">
-            <strong class="font-bold text-rose-700 block mb-1">⚠️ Rejection Feedback from Supervisor:</strong>
-            ${art.feedback}
-          </div>
-        ` : ''}
-
         ${art.image_url ? `
-          <div class="mb-6 flex flex-col items-center group">
-            <div class="relative overflow-hidden rounded-xl border border-slate-200 shadow-sm cursor-zoom-in bg-slate-50 inline-block">
-              <img src="${art.image_url}" onclick="expandImage('${art.image_url}')" class="h-80 max-w-full object-contain transition duration-200 group-hover:scale-105">
-              <div onclick="expandImage('${art.image_url}')" class="absolute bottom-2 right-2 bg-slate-900/70 text-white text-[11px] px-2.5 py-1 rounded-md opacity-0 group-hover:opacity-100 transition">
-                🔍 Click to Expand
-              </div>
-            </div>
-            <span class="text-xs text-slate-400 mt-1">Click photo to open full view</span>
+          <div class="mb-6 flex flex-col items-center">
+            <img src="${art.image_url}" class="h-80 max-w-full object-contain rounded-xl border border-slate-200 shadow-sm">
           </div>
         ` : ''}
         
@@ -456,7 +504,6 @@
 
           if (uploadError) {
             alert("Image Upload Failed: " + uploadError.message);
-            console.error("Storage upload error:", uploadError);
             return;
           }
 
@@ -464,7 +511,6 @@
           imageUrl = urlData.publicUrl;
         }
 
-        // Determine status based on role
         const targetStatus = isElevatedUser() ? 'published' : 'pending';
 
         const { data, error } = await supabaseClient.from('articles').insert([
@@ -479,13 +525,12 @@
         ]);
 
         if (error) {
-          alert("SUPABASE ERROR:\nCode: " + error.code + "\nMessage: " + error.message);
-          console.error("Full Supabase Insert Error:", error);
+          alert("SUPABASE ERROR: " + error.message);
         } else {
           if (isElevatedUser()) {
             alert('Article published successfully!');
           } else {
-            alert('Submitted successfully! Article sent to Supervisor Review Queue.');
+            alert('Submitted successfully! You can track its approval status under "My Uploads".');
           }
           closeModal('articleModal');
           document.getElementById('articleForm').reset();
@@ -497,7 +542,7 @@
     }
 
     // SUPERVISOR APPROVAL ACTIONS & HISTORY LOGGING
-    async function approveArticle(id, title) {
+    async function approveArticle(id, title, authorEmail) {
       const { error } = await supabaseClient.from('articles').update({ status: 'published' }).eq('id', id);
       
       if (error) {
@@ -505,10 +550,10 @@
         return;
       }
 
-      // Record Audit History
       await supabaseClient.from('approval_history').insert([{
         article_id: id,
         article_title: title || ('Article #' + id),
+        article_author: authorEmail,
         action: 'approved',
         reviewer_email: currentUser ? currentUser.email : 'Supervisor',
         feedback: 'Approved for publication'
@@ -518,8 +563,8 @@
       fetchArticles();
     }
 
-    async function rejectArticle(id, title) {
-      const reason = prompt('Enter rejection feedback for the Tech:');
+    async function rejectArticle(id, title, authorEmail) {
+      const reason = prompt('Enter rejection feedback for the author:');
       if (reason) {
         const { error } = await supabaseClient.from('articles').update({ 
           status: 'rejected', 
@@ -531,16 +576,16 @@
           return;
         }
 
-        // Record Audit History
         await supabaseClient.from('approval_history').insert([{
           article_id: id,
           article_title: title || ('Article #' + id),
+          article_author: authorEmail,
           action: 'rejected',
           reviewer_email: currentUser ? currentUser.email : 'Supervisor',
           feedback: reason
         }]);
 
-        alert('Rejection feedback sent to the uploader.');
+        alert('Rejection feedback recorded. Sent to author notification bell.');
         fetchArticles();
       }
     }
@@ -574,14 +619,68 @@
           <div>
             <span class="font-bold uppercase tracking-wider ${item.action === 'approved' ? 'text-emerald-700' : 'text-rose-700'}">${item.action}</span>
             <h4 class="font-bold text-sm text-slate-800 mt-0.5">${item.article_title || 'Article #' + item.article_id}</h4>
+            <p class="text-slate-500 mt-0.5">Author: ${item.article_author || 'Unknown'}</p>
             <p class="text-slate-600 mt-1"><strong>Feedback:</strong> ${item.feedback || 'None'}</p>
           </div>
           <div class="text-right text-slate-400">
-            <div>${item.reviewer_email || 'Unknown'}</div>
+            <div>By: ${item.reviewer_email || 'Supervisor'}</div>
             <div>${new Date(item.created_at).toLocaleString()}</div>
           </div>
         </div>
       `).join('');
+    }
+
+    // CATEGORY FILTERING
+    function filterCategory(categoryName) {
+      currentCategory = categoryName;
+
+      showView('dashboardView');
+
+      const buttons = document.querySelectorAll('.cat-btn');
+      buttons.forEach(btn => {
+        if (btn.innerText.includes(categoryName)) {
+          btn.className = "cat-btn active bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-medium";
+        } else if (!btn.id.includes('queueTab')) {
+          btn.className = "cat-btn bg-white border border-slate-300 px-4 py-1.5 rounded-full text-sm font-medium";
+        }
+      });
+
+      fetchArticles();
+    }
+
+    // FETCH QUEUE COUNT FOR SUPERVISOR/ADMIN
+    async function updateQueueCount() {
+      if (isElevatedUser()) {
+        const { count, error } = await supabaseClient
+          .from('articles')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending');
+
+        if (!error) {
+          const queueCountElem = document.getElementById('queueCount');
+          if (queueCountElem) queueCountElem.innerText = count || 0;
+        }
+      }
+    }
+
+    // SWITCH AUTH TAB (Login / Register)
+    function switchAuthTab(type) {
+      const loginForm = document.getElementById('loginForm');
+      const registerForm = document.getElementById('registerForm');
+      const tabLoginBtn = document.getElementById('tabLoginBtn');
+      const tabRegisterBtn = document.getElementById('tabRegisterBtn');
+
+      if (type === 'login') {
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+        tabLoginBtn.className = "flex-1 py-2 font-semibold text-indigo-600 border-b-2 border-indigo-600 transition";
+        tabRegisterBtn.className = "flex-1 py-2 font-semibold text-slate-400 hover:text-slate-600 transition";
+      } else {
+        registerForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+        tabRegisterBtn.className = "flex-1 py-2 font-semibold text-indigo-600 border-b-2 border-indigo-600 transition";
+        tabLoginBtn.className = "flex-1 py-2 font-semibold text-slate-400 hover:text-slate-600 transition";
+      }
     }
 
     // HANDLE USER REGISTRATION
@@ -619,16 +718,8 @@
         e.stopPropagation();
       }
 
-      const emailInput = document.getElementById('loginEmail');
-      const passwordInput = document.getElementById('loginPassword');
-
-      if (!emailInput || !passwordInput) {
-        alert("Login inputs not found in DOM.");
-        return;
-      }
-
-      const email = emailInput.value.trim();
-      const password = passwordInput.value.trim();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
 
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: email,
@@ -637,7 +728,6 @@
 
       if (error) {
         alert("Login Failed: " + error.message);
-        console.error("Auth error details:", error);
       } else if (data?.user) {
         currentUser = data.user;
         userRole = data.user.user_metadata?.role || 'IT Staff';
@@ -654,6 +744,7 @@
       
       const userBadge = document.getElementById('userBadge');
       if (currentUser) {
+        userRole = currentUser.user_metadata?.role || 'IT Staff';
         userBadge.innerText = `${currentUser.email} (${userRole})`;
       }
 
@@ -704,16 +795,6 @@
         document.getElementById('appContainer').classList.add('hidden');
       }
     }
-
-    // LISTEN FOR AUTH CHANGES
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        currentUser = null;
-        userRole = 'IT Staff';
-        document.getElementById('appContainer').classList.add('hidden');
-        document.getElementById('authView').classList.remove('hidden');
-      }
-    });
 
     // INITIAL LOAD CHECK
     checkUserSession();

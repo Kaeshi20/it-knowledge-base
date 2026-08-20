@@ -102,6 +102,9 @@
 
         <!-- Action Buttons -->
         <div class="flex gap-2">
+          <button id="historyBtn" onclick="openApprovalHistory()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl font-medium shadow-sm transition hidden items-center gap-2">
+            📜 History Log
+          </button>
           <button onclick="openNewArticleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-medium shadow-sm transition flex items-center gap-2">
             <span>+ Add Knowledge</span>
           </button>
@@ -164,6 +167,19 @@
           <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium">Submit for Approval</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: APPROVAL HISTORY LOG -->
+  <div id="historyModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex justify-center items-center p-4 z-50">
+    <div class="bg-white w-full max-w-3xl rounded-2xl shadow-2xl p-6 relative max-h-[80vh] flex flex-col">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold text-slate-800">Supervisor Approval History Log</h3>
+        <button onclick="closeModal('historyModal')" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+      </div>
+      <div id="historyList" class="overflow-y-auto flex-1 space-y-3 pr-2">
+        <!-- Dynamic logs load here -->
+      </div>
     </div>
   </div>
 
@@ -255,7 +271,13 @@
       if (currentCategory === 'Queue') {
         query = query.eq('status', 'pending');
       } else {
-        query = query.or('status.eq.published,status.is.null');
+        // Fetch published articles OR articles belonging to the current uploader (so they see rejected/pending feedback)
+        if (currentUser) {
+          query = query.or(`status.eq.published,status.is.null,author_email.eq.${currentUser.email}`);
+        } else {
+          query = query.or('status.eq.published,status.is.null');
+        }
+        
         if (currentCategory && currentCategory !== 'All') {
           query = query.eq('category', currentCategory);
         }
@@ -307,24 +329,47 @@
         const card = document.createElement('div');
         card.className = "bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between cursor-pointer";
         
-        card.innerHTML = `
+        const cleanTitle = (art.title || 'Untitled').replace(/'/g, "\\'");
+
+        let cardHTML = `
           <div>
             <div class="flex justify-between items-start mb-3">
-              <span class="text-xs font-bold px-2.5 py-1 rounded-md ${isQueue ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-600'}">${art.category}</span>
-              <span class="text-xs text-slate-400">${new Date(art.created_at).toLocaleDateString()}</span>
+              <span class="text-xs font-bold px-2.5 py-1 rounded-md ${isQueue ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-600'}">${art.category || 'General'}</span>
+              <span class="text-xs text-slate-400">${art.created_at ? new Date(art.created_at).toLocaleDateString() : 'Recent'}</span>
             </div>
-            <h3 class="font-bold text-lg text-slate-900 mb-2">${art.title}</h3>
-            <p class="text-slate-600 text-sm line-clamp-3 mb-4">${art.content}</p>
+            <h3 class="font-bold text-lg text-slate-900 mb-2">${art.title || 'Untitled Article'}</h3>
+            <p class="text-slate-600 text-sm line-clamp-3 mb-4">${art.content || 'No content available.'}</p>
           </div>
-
-          ${isQueue && isSupervisor ? `
-            <div class="flex gap-2 pt-3 border-t border-slate-100">
-              <button onclick="event.stopPropagation(); approveArticle(${art.id})" class="flex-1 bg-emerald-600 text-white text-xs font-bold py-2 rounded-lg">Approve</button>
-              <button onclick="event.stopPropagation(); rejectArticle(${art.id})" class="flex-1 bg-rose-600 text-white text-xs font-bold py-2 rounded-lg">Reject</button>
-            </div>
-          ` : ''}
         `;
 
+        // UPLOADER STATUS / FEEDBACK BANNER
+        if (currentUser && art.author_email === currentUser.email) {
+          if (art.status === 'rejected' && art.feedback) {
+            cardHTML += `
+              <div class="mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+                <strong>⚠️ Rejected by Supervisor:</strong> ${art.feedback}
+              </div>
+            `;
+          } else if (art.status === 'pending') {
+            cardHTML += `
+              <div class="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                ⏳ Under Supervisor Review
+              </div>
+            `;
+          }
+        }
+
+        // SUPERVISOR APPROVAL / REJECTION BUTTONS
+        if (isQueue && isSupervisor) {
+          cardHTML += `
+            <div class="flex gap-2 pt-3 border-t border-slate-100 mt-3">
+              <button onclick="event.stopPropagation(); approveArticle(${art.id}, '${cleanTitle}')" class="flex-1 bg-emerald-600 text-white text-xs font-bold py-2 rounded-lg">Approve</button>
+              <button onclick="event.stopPropagation(); rejectArticle(${art.id}, '${cleanTitle}')" class="flex-1 bg-rose-600 text-white text-xs font-bold py-2 rounded-lg">Reject</button>
+            </div>
+          `;
+        }
+
+        card.innerHTML = cardHTML;
         card.onclick = () => openArticlePage(art);
         grid.appendChild(card);
       });
@@ -337,12 +382,20 @@
       
       detail.innerHTML = `
         <div class="flex justify-between items-start mb-4">
-          <span class="bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1 rounded-full">${art.category}</span>
-          ${isSupervisor ? `<button onclick="deleteArticle(${art.id})" class="text-rose-600 text-sm font-semibold">Delete</button>` : ''}
+          <span class="bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1 rounded-full">${art.category || 'General'}</span>
+          ${isSupervisor ? `<button onclick="deleteArticle(${art.id})" class="text-rose-600 text-sm font-semibold hover:underline">Delete Article</button>` : ''}
         </div>
+        
         <h1 class="text-3xl font-extrabold text-slate-900 mb-2">${art.title}</h1>
         <div class="text-xs text-slate-400 mb-6">By ${art.author_email || 'IT Staff'} • ${new Date(art.created_at).toLocaleString()}</div>
         
+        ${art.status === 'rejected' && art.feedback ? `
+          <div class="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900">
+            <strong class="font-bold text-rose-700 block mb-1">⚠️ Rejection Feedback from Supervisor:</strong>
+            ${art.feedback}
+          </div>
+        ` : ''}
+
         ${art.image_url ? `
           <div class="mb-6 flex flex-col items-center group">
             <div class="relative overflow-hidden rounded-xl border border-slate-200 shadow-sm cursor-zoom-in bg-slate-50 inline-block">
@@ -417,16 +470,51 @@
       }
     }
 
-    // SUPERVISOR APPROVAL ACTIONS
-    async function approveArticle(id) {
-      await supabaseClient.from('articles').update({ status: 'published' }).eq('id', id);
+    // SUPERVISOR APPROVAL ACTIONS & HISTORY LOGGING
+    async function approveArticle(id, title) {
+      const { error } = await supabaseClient.from('articles').update({ status: 'published' }).eq('id', id);
+      
+      if (error) {
+        alert("Error approving article: " + error.message);
+        return;
+      }
+
+      // Record Audit History
+      await supabaseClient.from('approval_history').insert([{
+        article_id: id,
+        article_title: title || ('Article #' + id),
+        action: 'approved',
+        reviewer_email: currentUser ? currentUser.email : 'Supervisor',
+        feedback: 'Approved for publication'
+      }]);
+
+      alert('Article approved!');
       fetchArticles();
     }
 
-    async function rejectArticle(id) {
+    async function rejectArticle(id, title) {
       const reason = prompt('Enter rejection feedback for the Tech:');
       if (reason) {
-        await supabaseClient.from('articles').update({ status: 'rejected', feedback: reason }).eq('id', id);
+        const { error } = await supabaseClient.from('articles').update({ 
+          status: 'rejected', 
+          feedback: reason 
+        }).eq('id', id);
+
+        if (error) {
+          alert("Error rejecting article: " + error.message);
+          return;
+        }
+
+        // Record Audit History
+        await supabaseClient.from('approval_history').insert([{
+          article_id: id,
+          article_title: title || ('Article #' + id),
+          action: 'rejected',
+          reviewer_email: currentUser ? currentUser.email : 'Supervisor',
+          feedback: reason
+        }]);
+
+        alert('Rejection feedback sent to the uploader.');
         fetchArticles();
       }
     }
@@ -437,6 +525,37 @@
         showView('dashboardView');
         fetchArticles();
       }
+    }
+
+    // OPEN APPROVAL HISTORY MODAL (SUPERVISOR/ADMIN)
+    async function openApprovalHistory() {
+      document.getElementById('historyModal').classList.remove('hidden');
+      const container = document.getElementById('historyList');
+      container.innerHTML = '<p class="text-sm text-slate-400 py-4 text-center">Loading audit history...</p>';
+
+      const { data, error } = await supabaseClient
+        .from('approval_history')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error || !data || !data.length) {
+        container.innerHTML = '<p class="text-sm text-slate-400 py-4 text-center">No approval history logs found.</p>';
+        return;
+      }
+
+      container.innerHTML = data.map(item => `
+        <div class="p-3 border rounded-xl flex justify-between items-start text-xs ${item.action === 'approved' ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'}">
+          <div>
+            <span class="font-bold uppercase tracking-wider ${item.action === 'approved' ? 'text-emerald-700' : 'text-rose-700'}">${item.action}</span>
+            <h4 class="font-bold text-sm text-slate-800 mt-0.5">${item.article_title || 'Article #' + item.article_id}</h4>
+            <p class="text-slate-600 mt-1"><strong>Feedback:</strong> ${item.feedback || 'None'}</p>
+          </div>
+          <div class="text-right text-slate-400">
+            <div>${item.reviewer_email || 'Unknown'}</div>
+            <div>${new Date(item.created_at).toLocaleString()}</div>
+          </div>
+        </div>
+      `).join('');
     }
 
     // HANDLE USER REGISTRATION
@@ -518,10 +637,14 @@
     // UPDATE UI PERMISSIONS BASED ON ROLE
     function updateUIForRole() {
       const queueTab = document.getElementById('queueTab');
+      const historyBtn = document.getElementById('historyBtn');
+
       if (userRole === 'Supervisor' || userRole === 'Admin') {
         if (queueTab) queueTab.classList.remove('hidden');
+        if (historyBtn) historyBtn.classList.remove('hidden');
       } else {
         if (queueTab) queueTab.classList.add('hidden');
+        if (historyBtn) historyBtn.classList.add('hidden');
       }
     }
 

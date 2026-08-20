@@ -259,6 +259,12 @@
       fetchArticles();
     }
 
+    // HELPER: CHECK ELEVATED PERMISSIONS
+    function isElevatedUser() {
+      const role = (userRole || '').toLowerCase();
+      return role === 'supervisor' || role === 'admin';
+    }
+
     // FETCH ARTICLES WITH FILTERS & SEARCH
     async function fetchArticles() {
       const searchInput = document.getElementById('searchInput')?.value?.trim();
@@ -271,7 +277,7 @@
       if (currentCategory === 'Queue') {
         query = query.eq('status', 'pending');
       } else {
-        // Fetch published articles OR articles belonging to the current uploader (so they see rejected/pending feedback)
+        // Fetch published articles OR articles belonging to current user
         if (currentUser) {
           query = query.or(`status.eq.published,status.is.null,author_email.eq.${currentUser.email}`);
         } else {
@@ -300,7 +306,7 @@
 
     // FETCH QUEUE COUNT FOR SUPERVISOR/ADMIN
     async function updateQueueCount() {
-      if (userRole === 'Supervisor' || userRole === 'Admin') {
+      if (isElevatedUser()) {
         const { count, error } = await supabaseClient
           .from('articles')
           .select('*', { count: 'exact', head: true })
@@ -325,7 +331,7 @@
 
       articles.forEach(art => {
         const isQueue = art.status === 'pending';
-        const isSupervisor = (userRole === 'Supervisor' || userRole === 'Admin');
+        const isSupervisor = isElevatedUser();
         const card = document.createElement('div');
         card.className = "bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between cursor-pointer";
         
@@ -363,8 +369,8 @@
         if (isQueue && isSupervisor) {
           cardHTML += `
             <div class="flex gap-2 pt-3 border-t border-slate-100 mt-3">
-              <button onclick="event.stopPropagation(); approveArticle(${art.id}, '${cleanTitle}')" class="flex-1 bg-emerald-600 text-white text-xs font-bold py-2 rounded-lg">Approve</button>
-              <button onclick="event.stopPropagation(); rejectArticle(${art.id}, '${cleanTitle}')" class="flex-1 bg-rose-600 text-white text-xs font-bold py-2 rounded-lg">Reject</button>
+              <button onclick="event.stopPropagation(); approveArticle(${art.id}, '${cleanTitle}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg transition">Approve</button>
+              <button onclick="event.stopPropagation(); rejectArticle(${art.id}, '${cleanTitle}')" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 rounded-lg transition">Reject</button>
             </div>
           `;
         }
@@ -378,7 +384,7 @@
     // OPEN SINGLE ARTICLE PAGE
     function openArticlePage(art) {
       const detail = document.getElementById('articleDetail');
-      const isSupervisor = (userRole === 'Supervisor' || userRole === 'Admin');
+      const isSupervisor = isElevatedUser();
       
       detail.innerHTML = `
         <div class="flex justify-between items-start mb-4">
@@ -634,26 +640,25 @@
       updateUIForRole();
     }
 
-   // UPDATE UI PERMISSIONS BASED ON ROLE
-function updateUIForRole() {
-  const queueTab = document.getElementById('queueTab');
-  const historyBtn = document.getElementById('historyBtn');
+    // UPDATE UI PERMISSIONS BASED ON ROLE
+    function updateUIForRole() {
+      const queueTab = document.getElementById('queueTab');
+      const historyBtn = document.getElementById('historyBtn');
 
-  // Case-insensitive role check
-  const normalizedRole = (userRole || '').toLowerCase();
-  const isElevated = normalizedRole === 'supervisor' || normalizedRole === 'admin';
-
-  if (isElevated) {
-    if (queueTab) queueTab.classList.remove('hidden');
-    if (historyBtn) historyBtn.classList.remove('hidden');
-    // Ensure flex layout is used when visible so it lines up with + Add Knowledge
-    if (historyBtn) historyBtn.classList.add('flex'); 
-  } else {
-    if (queueTab) queueTab.classList.add('hidden');
-    if (historyBtn) historyBtn.classList.add('hidden');
-    if (historyBtn) historyBtn.classList.remove('flex');
-  }
-}
+      if (isElevatedUser()) {
+        if (queueTab) queueTab.classList.remove('hidden');
+        if (historyBtn) {
+          historyBtn.classList.remove('hidden');
+          historyBtn.classList.add('flex'); 
+        }
+      } else {
+        if (queueTab) queueTab.classList.add('hidden');
+        if (historyBtn) {
+          historyBtn.classList.add('hidden');
+          historyBtn.classList.remove('flex');
+        }
+      }
+    }
 
     // LOGOUT FUNCTION
     async function handleLogout() {

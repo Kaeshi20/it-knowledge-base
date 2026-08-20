@@ -161,10 +161,10 @@
           <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Content (Markdown / Detailed Procedure)</label>
           <textarea id="artContent" rows="6" required class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
         </div>
-        <p class="text-xs text-amber-600 font-medium">* Note: Article will be sent to the Supervisor Review Queue before publishing.</p>
+        <p id="artModalNote" class="text-xs text-amber-600 font-medium">* Note: Article will be sent to the Supervisor Review Queue before publishing.</p>
         <div class="flex justify-end gap-3 pt-2">
           <button type="button" onclick="closeModal('articleModal')" class="px-4 py-2 text-slate-600">Cancel</button>
-          <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium">Submit for Approval</button>
+          <button type="submit" id="artSubmitBtn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium">Submit for Approval</button>
         </div>
       </form>
     </div>
@@ -205,6 +205,19 @@
     }
 
     function openNewArticleModal() {
+      const modalNote = document.getElementById('artModalNote');
+      const submitBtn = document.getElementById('artSubmitBtn');
+
+      if (isElevatedUser()) {
+        modalNote.className = "text-xs text-emerald-600 font-medium";
+        modalNote.innerText = "✓ Note: As a Supervisor/Admin, your article will be published immediately.";
+        submitBtn.innerText = "Publish Article";
+      } else {
+        modalNote.className = "text-xs text-amber-600 font-medium";
+        modalNote.innerText = "* Note: Article will be sent to the Supervisor Review Queue before publishing.";
+        submitBtn.innerText = "Submit for Approval";
+      }
+
       document.getElementById('articleModal').classList.remove('hidden');
     }
 
@@ -451,13 +464,16 @@
           imageUrl = urlData.publicUrl;
         }
 
+        // Determine status based on role
+        const targetStatus = isElevatedUser() ? 'published' : 'pending';
+
         const { data, error } = await supabaseClient.from('articles').insert([
           {
             title: title,
             category: category,
             content: content,
             image_url: imageUrl,
-            status: 'pending',
+            status: targetStatus,
             author_email: currentUser ? currentUser.email : 'tech@company.com'
           }
         ]);
@@ -466,7 +482,11 @@
           alert("SUPABASE ERROR:\nCode: " + error.code + "\nMessage: " + error.message);
           console.error("Full Supabase Insert Error:", error);
         } else {
-          alert('Submitted successfully! Article sent to Supervisor Review Queue.');
+          if (isElevatedUser()) {
+            alert('Article published successfully!');
+          } else {
+            alert('Submitted successfully! Article sent to Supervisor Review Queue.');
+          }
           closeModal('articleModal');
           document.getElementById('articleForm').reset();
           fetchArticles();

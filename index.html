@@ -311,7 +311,7 @@ async function fetchUserNotifications() {
   const badge = document.getElementById('notifBadge');
   const list = document.getElementById('notifList');
 
-  // Hard safeguard: if no user is authenticated yet, hide badge and exit
+  // CRITICAL FIX: Stop execution if user is not logged in yet
   if (!currentUser || !currentUser.email) {
     if (badge) badge.classList.add('hidden');
     return;
@@ -335,12 +335,9 @@ async function fetchUserNotifications() {
     let unreadCount = 0;
 
     if (!lastSeenTimeStr) {
-      // If never opened before, mark all logs as unread
       unreadCount = userLogs.length;
     } else {
       const lastSeenTime = new Date(lastSeenTimeStr).getTime();
-      
-      // Count how many notifications are NEWER than the stored timestamp
       unreadCount = userLogs.filter(n => new Date(n.created_at).getTime() > lastSeenTime).length;
     }
 
@@ -350,6 +347,23 @@ async function fetchUserNotifications() {
     } else {
       badge.classList.add('hidden');
     }
+
+    // Render notification list items
+    list.innerHTML = userLogs.map(n => `
+      <div onclick="clickNotificationItem()" class="p-3 text-xs hover:bg-slate-50 transition cursor-pointer ${n.action === 'approved' ? 'border-l-4 border-emerald-500' : 'border-l-4 border-rose-500'}">
+        <div class="flex justify-between items-center mb-1">
+          <span class="font-bold capitalize ${n.action === 'approved' ? 'text-emerald-600' : 'text-rose-600'}">Article ${n.action}</span>
+          <span class="text-[10px] text-slate-400">${new Date(n.created_at).toLocaleDateString()}</span>
+        </div>
+        <p class="font-medium text-slate-800 line-clamp-1">"${n.article_title || 'Article'}"</p>
+        ${n.feedback ? `<p class="text-slate-500 mt-1 italic bg-slate-100 p-1.5 rounded">"${n.feedback}"</p>` : ''}
+      </div>
+    `).join('');
+  } else {
+    badge.classList.add('hidden');
+    list.innerHTML = `<div class="p-4 text-xs text-center text-slate-400">No notifications</div>`;
+  }
+}
 
     // Render notification list items
     list.innerHTML = userLogs.map(n => `

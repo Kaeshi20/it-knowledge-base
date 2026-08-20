@@ -275,128 +275,73 @@
     }
 
     // PERSISTENT NOTIFICATION BADGE HANDLING
-function toggleNotifDropdown(e) {
-  if (e) e.stopPropagation();
-  const dropdown = document.getElementById('notifDropdown');
-  const isOpening = dropdown.classList.contains('hidden');
-  
-  dropdown.classList.toggle('hidden');
+    function toggleNotifDropdown(e) {
+      if (e) e.stopPropagation();
+      const dropdown = document.getElementById('notifDropdown');
+      const isOpening = dropdown.classList.contains('hidden');
+      
+      dropdown.classList.toggle('hidden');
 
-  if (isOpening && currentUser && userNotifications.length > 0) {
-    // Store the exact ISO timestamp of the latest notification seen
-    const latestTimestamp = userNotifications[0].created_at;
-    const seenKey = 'notif_last_seen_time_' + currentUser.email;
-    
-    localStorage.setItem(seenKey, latestTimestamp);
-    
-    // Hide the badge immediately
-    document.getElementById('notifBadge').classList.add('hidden');
-  }
-}
-
-window.addEventListener('click', () => {
-  const dropdown = document.getElementById('notifDropdown');
-  if (dropdown && !dropdown.classList.contains('hidden')) {
-    dropdown.classList.add('hidden');
-  }
-});
-
-function isElevatedUser() {
-  const role = (userRole || '').toLowerCase();
-  return role === 'supervisor' || role === 'admin';
-}
-
-// FETCH NOTIFICATIONS & COMPARE PERSISTED TIMESTAMPS
-async function fetchUserNotifications() {
-  const badge = document.getElementById('notifBadge');
-  const list = document.getElementById('notifList');
-
-  // CRITICAL FIX: Stop execution if user is not logged in yet
-  if (!currentUser || !currentUser.email) {
-    if (badge) badge.classList.add('hidden');
-    return;
-  }
-
-  const { data, error } = await supabaseClient
-    .from('approval_history')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error || !data) return;
-
-  // Filter logs for current user
-  const userLogs = data.filter(item => item.article_author === currentUser.email);
-  userNotifications = userLogs;
-
-  if (userLogs.length > 0) {
-    const seenKey = 'notif_last_seen_time_' + currentUser.email;
-    const lastSeenTimeStr = localStorage.getItem(seenKey);
-
-    let unreadCount = 0;
-
-    if (!lastSeenTimeStr) {
-      unreadCount = userLogs.length;
-    } else {
-      const lastSeenTime = new Date(lastSeenTimeStr).getTime();
-      unreadCount = userLogs.filter(n => new Date(n.created_at).getTime() > lastSeenTime).length;
+      if (isOpening && currentUser && userNotifications.length > 0) {
+        const latestTimestamp = userNotifications[0].created_at;
+        const seenKey = 'notif_last_seen_time_' + currentUser.email;
+        
+        localStorage.setItem(seenKey, latestTimestamp);
+        document.getElementById('notifBadge').classList.add('hidden');
+      }
     }
 
-    if (unreadCount > 0) {
-      badge.innerText = unreadCount;
-      badge.classList.remove('hidden');
-    } else {
-      badge.classList.add('hidden');
+    window.addEventListener('click', () => {
+      const dropdown = document.getElementById('notifDropdown');
+      if (dropdown && !dropdown.classList.contains('hidden')) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    function isElevatedUser() {
+      const role = (userRole || '').toLowerCase();
+      return role === 'supervisor' || role === 'admin';
     }
 
-    // Render notification list items
-    list.innerHTML = userLogs.map(n => `
-      <div onclick="clickNotificationItem()" class="p-3 text-xs hover:bg-slate-50 transition cursor-pointer ${n.action === 'approved' ? 'border-l-4 border-emerald-500' : 'border-l-4 border-rose-500'}">
-        <div class="flex justify-between items-center mb-1">
-          <span class="font-bold capitalize ${n.action === 'approved' ? 'text-emerald-600' : 'text-rose-600'}">Article ${n.action}</span>
-          <span class="text-[10px] text-slate-400">${new Date(n.created_at).toLocaleDateString()}</span>
-        </div>
-        <p class="font-medium text-slate-800 line-clamp-1">"${n.article_title || 'Article'}"</p>
-        ${n.feedback ? `<p class="text-slate-500 mt-1 italic bg-slate-100 p-1.5 rounded">"${n.feedback}"</p>` : ''}
-      </div>
-    `).join('');
-  } else {
-    badge.classList.add('hidden');
-    list.innerHTML = `<div class="p-4 text-xs text-center text-slate-400">No notifications</div>`;
-  }
-}
+    // FETCH NOTIFICATIONS & COMPARE PERSISTED TIMESTAMPS
+    async function fetchUserNotifications() {
+      const badge = document.getElementById('notifBadge');
+      const list = document.getElementById('notifList');
 
-    // Render notification list items
-    list.innerHTML = userLogs.map(n => `
-      <div onclick="clickNotificationItem()" class="p-3 text-xs hover:bg-slate-50 transition cursor-pointer ${n.action === 'approved' ? 'border-l-4 border-emerald-500' : 'border-l-4 border-rose-500'}">
-        <div class="flex justify-between items-center mb-1">
-          <span class="font-bold capitalize ${n.action === 'approved' ? 'text-emerald-600' : 'text-rose-600'}">Article ${n.action}</span>
-          <span class="text-[10px] text-slate-400">${new Date(n.created_at).toLocaleDateString()}</span>
-        </div>
-        <p class="font-medium text-slate-800 line-clamp-1">"${n.article_title || 'Article'}"</p>
-        ${n.feedback ? `<p class="text-slate-500 mt-1 italic bg-slate-100 p-1.5 rounded">"${n.feedback}"</p>` : ''}
-      </div>
-    `).join('');
-  } else {
-    badge.classList.add('hidden');
-    list.innerHTML = `<div class="p-4 text-xs text-center text-slate-400">No notifications</div>`;
-  }
-}
-    // Render list items
-    list.innerHTML = userLogs.map(n => `
-      <div onclick="clickNotificationItem()" class="p-3 text-xs hover:bg-slate-50 transition cursor-pointer ${n.action === 'approved' ? 'border-l-4 border-emerald-500' : 'border-l-4 border-rose-500'}">
-        <div class="flex justify-between items-center mb-1">
-          <span class="font-bold capitalize ${n.action === 'approved' ? 'text-emerald-600' : 'text-rose-600'}">Article ${n.action}</span>
-          <span class="text-[10px] text-slate-400">${new Date(n.created_at).toLocaleDateString()}</span>
-        </div>
-        <p class="font-medium text-slate-800 line-clamp-1">"${n.article_title || 'Article'}"</p>
-        ${n.feedback ? `<p class="text-slate-500 mt-1 italic bg-slate-100 p-1.5 rounded">"${n.feedback}"</p>` : ''}
-      </div>
-    `).join('');
-  } else {
-    badge.classList.add('hidden');
-    list.innerHTML = `<div class="p-4 text-xs text-center text-slate-400">No notifications</div>`;
-  }
-}
+      if (!currentUser || !currentUser.email) {
+        if (badge) badge.classList.add('hidden');
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from('approval_history')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error || !data) return;
+
+      const userLogs = data.filter(item => item.article_author === currentUser.email);
+      userNotifications = userLogs;
+
+      if (userLogs.length > 0) {
+        const seenKey = 'notif_last_seen_time_' + currentUser.email;
+        const lastSeenTimeStr = localStorage.getItem(seenKey);
+
+        let unreadCount = 0;
+
+        if (!lastSeenTimeStr) {
+          unreadCount = userLogs.length;
+        } else {
+          const lastSeenTime = new Date(lastSeenTimeStr).getTime();
+          unreadCount = userLogs.filter(n => new Date(n.created_at).getTime() > lastSeenTime).length;
+        }
+
+        if (unreadCount > 0) {
+          badge.innerText = unreadCount;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
 
         list.innerHTML = userLogs.map(n => `
           <div onclick="clickNotificationItem()" class="p-3 text-xs hover:bg-slate-50 transition cursor-pointer ${n.action === 'approved' ? 'border-l-4 border-emerald-500' : 'border-l-4 border-rose-500'}">
@@ -409,8 +354,8 @@ async function fetchUserNotifications() {
           </div>
         `).join('');
       } else {
-        badge.classList.add('hidden');
-        list.innerHTML = `<div class="p-4 text-xs text-center text-slate-400">No notifications</div>`;
+        if (badge) badge.classList.add('hidden');
+        if (list) list.innerHTML = `<div class="p-4 text-xs text-center text-slate-400">No notifications</div>`;
       }
     }
 
@@ -973,7 +918,6 @@ async function fetchUserNotifications() {
     }
 
     checkUserSession();
-
-  </script>
+</script>
 </body>
 </html>

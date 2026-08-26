@@ -294,6 +294,10 @@
     let userNotifications = [];
     let myArticlesCache = [];
 
+const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  redirectTo: 'https://kaeshi20.github.io/it-knowledge-base/',
+});
+    
     // --- Modal Toggles ---
 function openForgotPasswordModal() {
   document.getElementById('forgotPasswordModal').classList.remove('hidden');

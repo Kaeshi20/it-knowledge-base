@@ -294,7 +294,7 @@
     let userNotifications = [];
     let myArticlesCache = [];
 
-const { error } = await supabase.auth.resetPasswordForEmail(email, {
+const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
   redirectTo: 'https://kaeshi20.github.io/it-knowledge-base/',
 });
     

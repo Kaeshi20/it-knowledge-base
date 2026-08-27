@@ -415,14 +415,17 @@
 
           notifList.innerHTML = activeNotifs.map(item => {
             const isRead = readNotifs.includes(item.id);
+            const serializedArticle = JSON.stringify(item).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+
             return `
-              <div class="p-3 border rounded-xl text-xs flex justify-between items-start ${isRead ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-rose-50 border-rose-200 text-rose-900 font-medium'}">
+              <div onclick="openNotificationArticle('${serializedArticle}')" 
+                   class="p-3 border rounded-xl text-xs flex justify-between items-start cursor-pointer hover:shadow-md transition ${isRead ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-rose-50 border-rose-200 text-rose-900 font-medium'}">
                 <div class="flex-1 pr-2">
                   <h4 class="font-bold">${item.title}</h4>
                   <p class="mt-1"><strong>Reason:</strong> ${item.feedback || 'No feedback provided'}</p>
                 </div>
                 <div class="flex flex-col gap-1 text-right">
-                  <button onclick="toggleNotificationReadState(${item.id})" class="text-[10px] font-bold underline ${isRead ? 'text-indigo-600' : 'text-slate-600'}">
+                  <button onclick="event.stopPropagation(); toggleNotificationReadState(${item.id})" class="text-[10px] font-bold underline ${isRead ? 'text-indigo-600' : 'text-slate-600'}">
                     ${isRead ? 'Mark Unread' : 'Mark Read'}
                   </button>
                 </div>
@@ -434,6 +437,23 @@
         if (notifBadge) notifBadge.classList.add('hidden');
         if (notifList) notifList.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No notifications.</p>';
       }
+    }
+
+    function openNotificationArticle(articleData) {
+      let art = articleData;
+      if (typeof articleData === 'string') {
+        art = JSON.parse(articleData.replace(/&quot;/g, '"').replace(/&apos;/g, "'"));
+      }
+      
+      const key = `read_notifs_${currentUser.id}`;
+      let readNotifs = JSON.parse(localStorage.getItem(key) || '[]');
+      if (!readNotifs.includes(art.id)) {
+        readNotifs.push(art.id);
+        localStorage.setItem(key, JSON.stringify(readNotifs));
+      }
+
+      closeModal('notifModal');
+      openArticlePage(art);
     }
 
     function openNotificationModal() {

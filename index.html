@@ -205,7 +205,7 @@
     function isElevatedUser() {
       if (!currentUser) return false;
       const role = currentUser.user_metadata?.role || userRole;
-      return role === 'Supervisor' || role === 'Admin';
+      return role === 'IT Senior' || role === 'Admin';
     }
 
     // --- Modal Toggles ---

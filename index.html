@@ -53,8 +53,8 @@
           <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Role</label>
           <select id="regRole" class="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
             <option value="IT Staff">IT Staff</option>
-            <option value="Supervisor">Supervisor</option>
-            <option value="Manager">Manager</option>
+            <option value="IT Senior">IT Senior</option>
+            <option value="Admin">Admin</option>
           </select>
         </div>
         <button type="submit" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-semibold shadow-md hover:bg-indigo-700 transition">Create Account</button>
@@ -75,7 +75,7 @@
           <span id="userBadge" class="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full font-medium"></span>
           
           <!-- Notification Bell -->
-          <button id="notifBtn" onclick="openModal('notifModal')" class="relative text-slate-600 hover:text-indigo-600 p-1">
+          <button id="notifBtn" onclick="openNotificationModal()" class="relative text-slate-600 hover:text-indigo-600 p-1">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             <span id="notifBadge" class="hidden absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
           </button>
@@ -201,7 +201,7 @@
   <div id="historyModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-slate-100 max-h-[80vh] flex flex-col">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="font-bold text-lg text-slate-900">Supervisor Audit History</h3>
+        <h3 class="font-bold text-lg text-slate-900">IT Senior Approval Audit History</h3>
         <button onclick="closeModal('historyModal')" class="text-slate-400 hover:text-slate-600">✕</button>
       </div>
       <div id="historyList" class="overflow-y-auto space-y-3 flex-1 pr-2"></div>
@@ -211,8 +211,8 @@
   <!-- SCRIPT -->
   <script>
     // --- Global State & Supabase Setup ---
-    const SUPABASE_URL = 'https://wswhxeagkqaqggilbnmk.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_lgVCXvLGHSPfLfF_gkRXnA_hoUX2Sq-';
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
@@ -220,11 +220,18 @@
     let currentCategory = 'all';
     let myArticlesCache = [];
 
-    // Helper to check supervisor/admin/manager role
-    function isElevatedUser() {
+    // Strictly check if the user is an IT Senior (Approver Role)
+    function isApprover() {
       if (!currentUser) return false;
       const role = currentUser.user_metadata?.role || userRole;
-      return role === 'Supervisor' || role === 'Admin' || role === 'Manager';
+      return role === 'IT Senior';
+    }
+
+    // Admin role check
+    function isAdmin() {
+      if (!currentUser) return false;
+      const role = currentUser.user_metadata?.role || userRole;
+      return role === 'Admin';
     }
 
     function openModal(id) {
@@ -269,7 +276,7 @@
       let query = supabaseClient.from('articles').select('*');
 
       if (currentCategory === 'pending') {
-        if (!isElevatedUser()) {
+        if (!isApprover()) {
           filterCategory('all');
           return;
         }
@@ -339,8 +346,8 @@
           `;
         }
 
-        // Add Approve/Reject action buttons for Approver in Pending View
-        if (art.status === 'pending' && isElevatedUser()) {
+        // Add Approve/Reject action buttons exclusively for IT Senior in Pending Queue
+        if (art.status === 'pending' && isApprover()) {
           cardHTML += `
             <div class="flex gap-2 mt-4 pt-3 border-t border-slate-100">
               <button onclick="event.stopPropagation(); approveArticle(${art.id}, '${art.title.replace(/'/g, "\\'")}', '${art.author_email}')" class="flex-1 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700">Approve</button>
@@ -371,8 +378,9 @@
       }
     }
 
+    // Fetch and handle notifications
     async function checkUserNotifications() {
-      if (!currentUser || isElevatedUser()) return;
+      if (!currentUser || isApprover()) return;
 
       const { data, error } = await supabaseClient
         .from('articles')
@@ -384,7 +392,16 @@
       const notifList = document.getElementById('notifList');
 
       if (!error && data && data.length > 0) {
-        if (notifBadge) notifBadge.classList.remove('hidden');
+        // Only show red badge if there are unread notifications in local storage
+        const readNotifs = JSON.parse(localStorage.getItem(`read_notifs_${currentUser.id}`) || '[]');
+        const hasUnread = data.some(item => !readNotifs.includes(item.id));
+
+        if (hasUnread) {
+          if (notifBadge) notifBadge.classList.remove('hidden');
+        } else {
+          if (notifBadge) notifBadge.classList.add('hidden');
+        }
+
         if (notifList) {
           notifList.innerHTML = data.map(item => `
             <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs">
@@ -396,6 +413,26 @@
       } else {
         if (notifBadge) notifBadge.classList.add('hidden');
         if (notifList) notifList.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No notifications.</p>';
+      }
+    }
+
+    // Opens modal and marks all notifications as read to clear badge
+    async function openNotificationModal() {
+      openModal('notifModal');
+      const notifBadge = document.getElementById('notifBadge');
+      if (notifBadge) notifBadge.classList.add('hidden');
+
+      if (currentUser) {
+        const { data } = await supabaseClient
+          .from('articles')
+          .select('id')
+          .eq('author_email', currentUser.email)
+          .eq('status', 'rejected');
+
+        if (data) {
+          const allIds = data.map(i => i.id);
+          localStorage.setItem(`read_notifs_${currentUser.id}`, JSON.stringify(allIds));
+        }
       }
     }
 
@@ -433,10 +470,9 @@
 
     function openArticlePage(art) {
       const detail = document.getElementById('articleDetail');
-      const isSupervisor = isElevatedUser();
       
       let approvalButtons = '';
-      if (art.status === 'pending' && isSupervisor) {
+      if (art.status === 'pending' && isApprover()) {
         approvalButtons = `
           <div class="flex gap-3 mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
             <button onclick="approveArticle(${art.id}, '${art.title.replace(/'/g, "\\'")}', '${art.author_email}')" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700">Approve Article</button>
@@ -448,7 +484,7 @@
       detail.innerHTML = `
         <div class="flex justify-between items-start mb-4">
           <span class="bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1 rounded-full">${art.category || 'General'}</span>
-          ${isSupervisor ? `<button onclick="deleteArticle(${art.id})" class="text-rose-600 text-sm font-semibold hover:underline">Delete Article</button>` : ''}
+          ${(isApprover() || isAdmin()) ? `<button onclick="deleteArticle(${art.id})" class="text-rose-600 text-sm font-semibold hover:underline">Delete Article</button>` : ''}
         </div>
         
         <h1 class="text-3xl font-extrabold text-slate-900 mb-2">${art.title}</h1>
@@ -494,7 +530,8 @@
           imageUrl = urlData.publicUrl;
         }
 
-        const targetStatus = isElevatedUser() ? 'published' : 'pending';
+        // IT Senior or Admin auto-publishes; IT Staff goes to pending queue
+        const targetStatus = (isApprover() || isAdmin()) ? 'published' : 'pending';
 
         const { error } = await supabaseClient.from('articles').insert([{
           title: title,
@@ -508,7 +545,7 @@
         if (error) {
           alert("SUPABASE ERROR: " + error.message);
         } else {
-          alert(isElevatedUser() ? 'Article published successfully!' : 'Submitted successfully! Track status in "My Uploads".');
+          alert((isApprover() || isAdmin()) ? 'Article published successfully!' : 'Submitted successfully! Track status in "My Uploads".');
           closeModal('articleModal');
           document.getElementById('articleForm').reset();
           fetchArticles();
@@ -527,7 +564,7 @@
         article_title: title || ('Article #' + id),
         article_author: authorEmail,
         action: 'approved',
-        reviewer_email: currentUser ? currentUser.email : 'Supervisor',
+        reviewer_email: currentUser ? currentUser.email : 'IT Senior',
         feedback: 'Approved for publication'
       }]);
 
@@ -547,7 +584,7 @@
           article_title: title || ('Article #' + id),
           article_author: authorEmail,
           action: 'rejected',
-          reviewer_email: currentUser ? currentUser.email : 'Supervisor',
+          reviewer_email: currentUser ? currentUser.email : 'IT Senior',
           feedback: reason
         }]);
 
@@ -586,7 +623,7 @@
             <p class="text-slate-600 mt-1"><strong>Feedback:</strong> ${item.feedback || 'None'}</p>
           </div>
           <div class="text-right text-slate-400">
-            <div>By: ${item.reviewer_email || 'Supervisor'}</div>
+            <div>By: ${item.reviewer_email || 'IT Senior'}</div>
             <div>${new Date(item.created_at).toLocaleString()}</div>
           </div>
         </div>
@@ -610,7 +647,7 @@
     }
 
     async function updateQueueCount() {
-      if (isElevatedUser()) {
+      if (isApprover()) {
         const { count, error } = await supabaseClient
           .from('articles')
           .select('*', { count: 'exact', head: true })
@@ -704,7 +741,7 @@
       const historyBtn = document.getElementById('historyBtn');
       const notifBtn = document.getElementById('notifBtn');
 
-      if (isElevatedUser()) {
+      if (isApprover()) {
         if (queueTab) queueTab.classList.remove('hidden');
         if (historyBtn) historyBtn.classList.remove('hidden');
         if (notifBtn) notifBtn.classList.add('hidden');

@@ -238,6 +238,14 @@
       return role === 'Admin';
     }
 
+    function canDeleteArticle(article) {
+      if (!currentUser) return false;
+      if (isApprover()) return true; // IT Senior can delete any article
+      if (isAdmin()) return false;   // Admin cannot delete articles
+      // IT Staff can only delete their own articles
+      return article.author_email === currentUser.email;
+    }
+
     function openModal(id) {
       const modal = document.getElementById(id);
       if (modal) modal.classList.remove('hidden');
@@ -326,6 +334,8 @@
           statusBadge = `<span class="bg-indigo-50 text-indigo-600 text-xs px-2.5 py-0.5 rounded-full font-semibold">${art.category || 'General'}</span>`;
         }
 
+        const showDeleteBtn = canDeleteArticle(art);
+
         let cardHTML = `
           <div>
             <div class="flex justify-between items-center mb-3 pr-8">
@@ -333,9 +343,11 @@
               <span class="text-xs text-slate-400">${new Date(art.created_at).toLocaleDateString()}</span>
             </div>
             
-            <button onclick="event.stopPropagation(); confirmDeleteSingleUpload(${art.id})" title="Delete Article" class="absolute top-4 right-3 text-slate-300 hover:text-rose-600 transition p-1 z-10">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-            </button>
+            ${showDeleteBtn ? `
+              <button onclick="event.stopPropagation(); confirmDeleteSingleUpload(${art.id})" title="Delete Article" class="absolute top-4 right-3 text-slate-300 hover:text-rose-600 transition p-1 z-10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
+            ` : ''}
 
             <h3 class="font-bold text-lg text-slate-900 mb-2">${art.title}</h3>
             <p class="text-slate-600 text-sm line-clamp-3 mb-4 whitespace-pre-wrap">${art.content}</p>
@@ -383,78 +395,77 @@
 
     // --- Notification Handling ---
     async function checkUserNotifications() {
-  if (!currentUser || isApprover()) return;
+      if (!currentUser || isApprover()) return;
 
-  // Fetch both published and rejected articles for this author
-  const { data, error } = await supabaseClient
-    .from('articles')
-    .select('*')
-    .eq('author_email', currentUser.email)
-    .in('status', ['published', 'rejected']);
+      const { data, error } = await supabaseClient
+        .from('articles')
+        .select('*')
+        .eq('author_email', currentUser.email)
+        .in('status', ['published', 'rejected']);
 
-  const notifBadge = document.getElementById('notifBadge');
-  const notifList = document.getElementById('notifList');
+      const notifBadge = document.getElementById('notifBadge');
+      const notifList = document.getElementById('notifList');
 
-  if (!error && data && data.length > 0) {
-    const readNotifs = JSON.parse(localStorage.getItem(`read_notifs_${currentUser.id}`) || '[]');
-    const deletedNotifs = JSON.parse(localStorage.getItem(`deleted_notifs_${currentUser.id}`) || '[]');
-    
-    const activeNotifs = data.filter(item => !deletedNotifs.includes(item.id));
-    const hasUnread = activeNotifs.some(item => !readNotifs.includes(item.id));
+      if (!error && data && data.length > 0) {
+        const readNotifs = JSON.parse(localStorage.getItem(`read_notifs_${currentUser.id}`) || '[]');
+        const deletedNotifs = JSON.parse(localStorage.getItem(`deleted_notifs_${currentUser.id}`) || '[]');
+        
+        const activeNotifs = data.filter(item => !deletedNotifs.includes(item.id));
+        const hasUnread = activeNotifs.some(item => !readNotifs.includes(item.id));
 
-    if (hasUnread) {
-      if (notifBadge) notifBadge.classList.remove('hidden');
-    } else {
-      if (notifBadge) notifBadge.classList.add('hidden');
-    }
+        if (hasUnread) {
+          if (notifBadge) notifBadge.classList.remove('hidden');
+        } else {
+          if (notifBadge) notifBadge.classList.add('hidden');
+        }
 
-    if (notifList) {
-      if (activeNotifs.length === 0) {
-        notifList.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No notifications.</p>';
-        return;
-      }
+        if (notifList) {
+          if (activeNotifs.length === 0) {
+            notifList.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No notifications.</p>';
+            return;
+          }
 
-      notifList.innerHTML = activeNotifs.map(item => {
-        const isRead = readNotifs.includes(item.id);
-        const isApproved = item.status === 'published';
-        const serializedArticle = JSON.stringify(item).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+          notifList.innerHTML = activeNotifs.map(item => {
+            const isRead = readNotifs.includes(item.id);
+            const isApproved = item.status === 'published';
+            const serializedArticle = JSON.stringify(item).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
-        const statusBg = isApproved 
-          ? (isRead ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-emerald-50 border-emerald-200 text-emerald-900 font-medium')
-          : (isRead ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-rose-50 border-rose-200 text-rose-900 font-medium');
+            const statusBg = isApproved 
+              ? (isRead ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-emerald-50 border-emerald-200 text-emerald-900 font-medium')
+              : (isRead ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-rose-50 border-rose-200 text-rose-900 font-medium');
 
-        const statusBadge = isApproved
-          ? '<span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">Approved</span>'
-          : '<span class="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold">Rejected</span>';
+            const statusBadge = isApproved
+              ? '<span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">Approved</span>'
+              : '<span class="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold">Rejected</span>';
 
-        const messageText = isApproved
-          ? 'Your article has been approved and published!'
-          : `<strong>Reason:</strong> ${item.feedback || 'No feedback provided'}`;
+            const messageText = isApproved
+              ? 'Your article has been approved and published!'
+              : `<strong>Reason:</strong> ${item.feedback || 'No feedback provided'}`;
 
-        return `
-          <div onclick="openNotificationArticle('${serializedArticle}')" 
-               class="p-3 border rounded-xl text-xs flex justify-between items-start cursor-pointer hover:shadow-md transition ${statusBg}">
-            <div class="flex-1 pr-2">
-              <div class="flex items-center gap-2 mb-1">
-                ${statusBadge}
-                <h4 class="font-bold">${item.title}</h4>
+            return `
+              <div onclick="openNotificationArticle('${serializedArticle}')" 
+                   class="p-3 border rounded-xl text-xs flex justify-between items-start cursor-pointer hover:shadow-md transition ${statusBg}">
+                <div class="flex-1 pr-2">
+                  <div class="flex items-center gap-2 mb-1">
+                    ${statusBadge}
+                    <h4 class="font-bold">${item.title}</h4>
+                  </div>
+                  <p class="mt-1">${messageText}</p>
+                </div>
+                <div class="flex flex-col gap-1 text-right">
+                  <button onclick="event.stopPropagation(); toggleNotificationReadState(${item.id})" class="text-[10px] font-bold underline ${isRead ? 'text-indigo-600' : 'text-slate-600'}">
+                    ${isRead ? 'Mark Unread' : 'Mark Read'}
+                  </button>
+                </div>
               </div>
-              <p class="mt-1">${messageText}</p>
-            </div>
-            <div class="flex flex-col gap-1 text-right">
-              <button onclick="event.stopPropagation(); toggleNotificationReadState(${item.id})" class="text-[10px] font-bold underline ${isRead ? 'text-indigo-600' : 'text-slate-600'}">
-                ${isRead ? 'Mark Unread' : 'Mark Read'}
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
+            `;
+          }).join('');
+        }
+      } else {
+        if (notifBadge) notifBadge.classList.add('hidden');
+        if (notifList) notifList.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No notifications.</p>';
+      }
     }
-  } else {
-    if (notifBadge) notifBadge.classList.add('hidden');
-    if (notifList) notifList.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No notifications.</p>';
-  }
-}
 
     function openNotificationArticle(articleData) {
       let art = articleData;
@@ -494,22 +505,23 @@
     }
 
     async function deleteAllNotifications() {
-  if (!currentUser) return;
-  if (!confirm("Clear all notifications?")) return;
+      if (!currentUser) return;
+      if (!confirm("Clear all notifications?")) return;
 
-  const { data } = await supabaseClient
-    .from('articles')
-    .select('id')
-    .eq('author_email', currentUser.email)
-    .in('status', ['published', 'rejected']);
+      const { data } = await supabaseClient
+        .from('articles')
+        .select('id')
+        .eq('author_email', currentUser.email)
+        .in('status', ['published', 'rejected']);
 
-  if (data) {
-    const allIds = data.map(i => i.id);
-    localStorage.setItem(`deleted_notifs_${currentUser.id}`, JSON.stringify(allIds));
-  }
+      if (data) {
+        const allIds = data.map(i => i.id);
+        localStorage.setItem(`deleted_notifs_${currentUser.id}`, JSON.stringify(allIds));
+      }
 
-  checkUserNotifications();
-}
+      checkUserNotifications();
+    }
+
     async function confirmDeleteSingleUpload(articleId) {
       if (!confirm("Delete this article?")) return;
 
@@ -542,43 +554,46 @@
       }
     }
 
-   function openArticlePage(art) {
-  const detail = document.getElementById('articleDetail');
-  
-  let approvalButtons = '';
-  if (art.status === 'pending' && isApprover()) {
-    approvalButtons = `
-      <div class="flex gap-3 mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-        <button onclick="approveArticle(${art.id}, '${art.title.replace(/'/g, "\\'")}', '${art.author_email}')" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700">Approve Article</button>
-        <button onclick="rejectArticle(${art.id}, '${art.title.replace(/'/g, "\\'")}', '${art.author_email}')" class="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-semibold hover:bg-rose-700">Reject Article</button>
-      </div>
-    `;
-  }
+    function openArticlePage(art) {
+      const detail = document.getElementById('articleDetail');
+      
+      let approvalButtons = '';
+      if (art.status === 'pending' && isApprover()) {
+        approvalButtons = `
+          <div class="flex gap-3 mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+            <button onclick="approveArticle(${art.id}, '${art.title.replace(/'/g, "\\'")}', '${art.author_email}')" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700">Approve Article</button>
+            <button onclick="rejectArticle(${art.id}, '${art.title.replace(/'/g, "\\'")}', '${art.author_email}')" class="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-semibold hover:bg-rose-700">Reject Article</button>
+          </div>
+        `;
+      }
 
-  detail.innerHTML = `
-    <div class="flex justify-between items-start mb-4">
-      <div class="flex items-center gap-2">
-        <span class="bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1 rounded-full">${art.category || 'General'}</span>
-        ${art.status === 'published' ? '<span class="bg-emerald-100 text-emerald-700 font-bold text-xs px-3 py-1 rounded-full">Published</span>' : ''}
-      </div>
-      ${(isApprover() || isAdmin()) ? `<button onclick="deleteArticle(${art.id})" class="text-rose-600 text-sm font-semibold hover:underline">Delete Article</button>` : ''}
-    </div>
-    
-    <h1 class="text-3xl font-extrabold text-slate-900 mb-2">${art.title}</h1>
-    <div class="text-xs text-slate-400 mb-6">By ${art.author_email || 'IT Staff'} • ${new Date(art.created_at).toLocaleString()}</div>
-    
-    ${approvalButtons}
+      const showDeleteBtn = canDeleteArticle(art);
 
-    ${art.image_url ? `
-      <div class="mb-6 flex flex-col items-center">
-        <img src="${art.image_url}" class="h-80 max-w-full object-contain rounded-xl border border-slate-200 shadow-sm">
-      </div>
-    ` : ''}
-    
-    <div class="prose max-w-none text-slate-700 leading-relaxed whitespace-pre-wrap">${art.content}</div>
-  `;
-  showView('articleView');
-}
+      detail.innerHTML = `
+        <div class="flex justify-between items-start mb-4">
+          <div class="flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1 rounded-full">${art.category || 'General'}</span>
+            ${art.status === 'published' ? '<span class="bg-emerald-100 text-emerald-700 font-bold text-xs px-3 py-1 rounded-full">Published</span>' : ''}
+          </div>
+          ${showDeleteBtn ? `<button onclick="deleteArticle(${art.id})" class="text-rose-600 text-sm font-semibold hover:underline">Delete Article</button>` : ''}
+        </div>
+        
+        <h1 class="text-3xl font-extrabold text-slate-900 mb-2">${art.title}</h1>
+        <div class="text-xs text-slate-400 mb-6">By ${art.author_email || 'IT Staff'} • ${new Date(art.created_at).toLocaleString()}</div>
+        
+        ${approvalButtons}
+
+        ${art.image_url ? `
+          <div class="mb-6 flex flex-col items-center">
+            <img src="${art.image_url}" class="h-80 max-w-full object-contain rounded-xl border border-slate-200 shadow-sm">
+          </div>
+        ` : ''}
+        
+        <div class="prose max-w-none text-slate-700 leading-relaxed whitespace-pre-wrap">${art.content}</div>
+      `;
+      showView('articleView');
+    }
+
     async function handleArticleSubmit(e) {
       if (e) {
         e.preventDefault();

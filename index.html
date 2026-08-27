@@ -53,8 +53,8 @@
           <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Role</label>
           <select id="regRole" class="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
             <option value="IT Staff">IT Staff</option>
-            <option value="IT Senior">IT Senior</option>
-            <option value="Admin">Admin</option>
+            <option value="Supervisor">Supervisor</option>
+            <option value="Manager">Manager</option>
           </select>
         </div>
         <button type="submit" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-semibold shadow-md hover:bg-indigo-700 transition">Create Account</button>
@@ -73,6 +73,13 @@
         </div>
         <div class="flex items-center gap-4">
           <span id="userBadge" class="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full font-medium"></span>
+          
+          <!-- Notification Bell -->
+          <button id="notifBtn" onclick="openModal('notifModal')" class="relative text-slate-600 hover:text-indigo-600 p-1">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            <span id="notifBadge" class="hidden absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+          </button>
+
           <button onclick="openModal('articleModal')" class="bg-indigo-600 text-white px-4 py-1.5 rounded-xl text-xs font-semibold shadow hover:bg-indigo-700 transition">+ New Article</button>
           <button onclick="openMyUploadsView()" class="text-xs font-semibold text-slate-600 hover:text-indigo-600">My Uploads</button>
           <button id="historyBtn" onclick="openApprovalHistory()" class="hidden text-xs font-semibold text-slate-600 hover:text-indigo-600">Audit Logs</button>
@@ -108,6 +115,7 @@
 
       <!-- MY UPLOADS VIEW -->
       <div id="myUploadsView" class="hidden">
+        <button onclick="showView('dashboardView')" class="mb-6 text-xs font-semibold text-indigo-600 hover:underline block">← Back to Dashboard</button>
         <div class="flex justify-between items-center mb-6">
           <h2 class="text-xl font-bold text-slate-900">My Uploads</h2>
           <button onclick="confirmDeleteAllMyUploads()" class="text-xs bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl font-semibold hover:bg-rose-100">Delete All My Uploads</button>
@@ -163,6 +171,17 @@
     </div>
   </div>
 
+  <!-- NOTIFICATIONS MODAL -->
+  <div id="notifModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-lg text-slate-900">Notifications & Feedback</h3>
+        <button onclick="closeModal('notifModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <div id="notifList" class="space-y-3 max-h-80 overflow-y-auto"></div>
+    </div>
+  </div>
+
   <!-- FORGOT PASSWORD MODAL -->
   <div id="forgotPasswordModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-slate-100">
@@ -201,14 +220,13 @@
     let currentCategory = 'all';
     let myArticlesCache = [];
 
-    // Helper to check supervisor/admin role
+    // Helper to check supervisor/admin/manager role
     function isElevatedUser() {
       if (!currentUser) return false;
       const role = currentUser.user_metadata?.role || userRole;
-      return role === 'IT Senior' || role === 'Admin';
+      return role === 'Supervisor' || role === 'Admin' || role === 'Manager';
     }
 
-    // --- Modal Toggles ---
     function openModal(id) {
       const modal = document.getElementById(id);
       if (modal) modal.classList.remove('hidden');
@@ -219,35 +237,26 @@
       if (modal) modal.classList.add('hidden');
     }
 
-    function openForgotPasswordModal() {
-      openModal('forgotPasswordModal');
-    }
+    function openForgotPasswordModal() { openModal('forgotPasswordModal'); }
+    function closeForgotPasswordModal() { closeModal('forgotPasswordModal'); }
 
-    function closeForgotPasswordModal() {
-      closeModal('forgotPasswordModal');
-    }
-
-    // --- Step 1: Request Reset Email ---
     async function submitForgotPassword(event) {
       if (event) event.preventDefault();
       const email = document.getElementById('resetEmailInput').value;
-
       const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://kaeshi20.github.io/it-knowledge-base/',
+        redirectTo: window.location.href,
       });
 
       if (error) {
         alert("Error: " + error.message);
       } else {
-        alert("Password reset link sent! Check your email inbox.");
+        alert("Password reset link sent!");
         closeForgotPasswordModal();
       }
     }
 
-    // --- Views Navigation ---
     function showView(viewId) {
-      const views = ['dashboardView', 'articleView', 'myUploadsView'];
-      views.forEach(v => {
+      ['dashboardView', 'articleView', 'myUploadsView'].forEach(v => {
         const elem = document.getElementById(v);
         if (elem) elem.classList.add('hidden');
       });
@@ -260,6 +269,10 @@
       let query = supabaseClient.from('articles').select('*');
 
       if (currentCategory === 'pending') {
+        if (!isElevatedUser()) {
+          filterCategory('all');
+          return;
+        }
         query = query.eq('status', 'pending');
       } else if (currentCategory !== 'all') {
         query = query.eq('category', currentCategory).eq('status', 'published');
@@ -274,17 +287,18 @@
         return;
       }
 
-      renderArticles(data);
+      renderArticles(data, 'articlesGrid');
       updateQueueCount();
+      checkUserNotifications();
     }
 
-    function renderArticles(articles) {
-      const grid = document.getElementById('articlesGrid');
+    function renderArticles(articles, targetGridId = 'articlesGrid') {
+      const grid = document.getElementById(targetGridId);
       if (!grid) return;
       grid.innerHTML = '';
 
       if (!articles || articles.length === 0) {
-        grid.innerHTML = `<p class="col-span-full text-center text-slate-400 py-10">No articles found in this section.</p>`;
+        grid.innerHTML = `<p class="col-span-full text-center text-slate-400 py-10">No articles found.</p>`;
         return;
       }
 
@@ -301,28 +315,36 @@
           statusBadge = `<span class="bg-indigo-50 text-indigo-600 text-xs px-2.5 py-0.5 rounded-full font-semibold">${art.category || 'General'}</span>`;
         }
 
-        // Replace this block inside renderArticles(articles):
-let cardHTML = `
-  <div>
-    <div class="flex justify-between items-center mb-3 pr-8">
-      ${statusBadge}
-      <span class="text-xs text-slate-400">${new Date(art.created_at).toLocaleDateString()}</span>
-    </div>
-    
-    <button onclick="event.stopPropagation(); confirmDeleteSingleUpload(${art.id})" title="Delete Article" class="absolute top-4 right-3 text-slate-300 hover:text-rose-600 transition p-1 z-10">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-    </button>
+        let cardHTML = `
+          <div>
+            <div class="flex justify-between items-center mb-3 pr-8">
+              ${statusBadge}
+              <span class="text-xs text-slate-400">${new Date(art.created_at).toLocaleDateString()}</span>
+            </div>
+            
+            <button onclick="event.stopPropagation(); confirmDeleteSingleUpload(${art.id})" title="Delete Article" class="absolute top-4 right-3 text-slate-300 hover:text-rose-600 transition p-1 z-10">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
 
-    <h3 class="font-bold text-lg text-slate-900 mb-2">${art.title}</h3>
-    <p class="text-slate-600 text-sm line-clamp-3 mb-4 whitespace-pre-wrap">${art.content}</p>
-  </div>
-`;
+            <h3 class="font-bold text-lg text-slate-900 mb-2">${art.title}</h3>
+            <p class="text-slate-600 text-sm line-clamp-3 mb-4 whitespace-pre-wrap">${art.content}</p>
+          </div>
+        `;
 
         if (art.status === 'rejected' && art.feedback) {
           cardHTML += `
             <div class="mt-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
-              <strong class="font-bold block mb-1">Supervisor Rejection Feedback:</strong>
-              "${art.feedback}"
+              <strong class="font-bold block mb-1">Feedback:</strong> "${art.feedback}"
+            </div>
+          `;
+        }
+
+        // Add Approve/Reject action buttons for Approver in Pending View
+        if (art.status === 'pending' && isElevatedUser()) {
+          cardHTML += `
+            <div class="flex gap-2 mt-4 pt-3 border-t border-slate-100">
+              <button onclick="event.stopPropagation(); approveArticle(${art.id}, '${art.title.replace(/'/g, "\\'")}', '${art.author_email}')" class="flex-1 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700">Approve</button>
+              <button onclick="event.stopPropagation(); rejectArticle(${art.id}, '${art.title.replace(/'/g, "\\'")}', '${art.author_email}')" class="flex-1 py-1.5 bg-rose-600 text-white rounded-xl text-xs font-semibold hover:bg-rose-700">Reject</button>
             </div>
           `;
         }
@@ -345,13 +367,40 @@ let cardHTML = `
 
       if (!error) {
         myArticlesCache = data || [];
-        renderArticles(myArticlesCache);
+        renderArticles(myArticlesCache, 'myArticlesGrid');
+      }
+    }
+
+    async function checkUserNotifications() {
+      if (!currentUser || isElevatedUser()) return;
+
+      const { data, error } = await supabaseClient
+        .from('articles')
+        .select('*')
+        .eq('author_email', currentUser.email)
+        .eq('status', 'rejected');
+
+      const notifBadge = document.getElementById('notifBadge');
+      const notifList = document.getElementById('notifList');
+
+      if (!error && data && data.length > 0) {
+        if (notifBadge) notifBadge.classList.remove('hidden');
+        if (notifList) {
+          notifList.innerHTML = data.map(item => `
+            <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs">
+              <h4 class="font-bold text-rose-900">${item.title}</h4>
+              <p class="text-rose-700 mt-1"><strong>Reason:</strong> ${item.feedback || 'No feedback provided'}</p>
+            </div>
+          `).join('');
+        }
+      } else {
+        if (notifBadge) notifBadge.classList.add('hidden');
+        if (notifList) notifList.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No notifications.</p>';
       }
     }
 
     async function confirmDeleteSingleUpload(articleId) {
-      const confirmed = confirm("Are you sure you want to delete this article from your uploads?");
-      if (!confirmed) return;
+      if (!confirm("Delete this article?")) return;
 
       const { error } = await supabaseClient.from('articles').delete().eq('id', articleId);
 
@@ -359,23 +408,20 @@ let cardHTML = `
         alert("Error deleting article: " + error.message);
       } else {
         alert("Article deleted successfully!");
-        openMyUploadsView();
+        const currentView = document.getElementById('myUploadsView').classList.contains('hidden') ? 'dashboard' : 'uploads';
+        if (currentView === 'uploads') openMyUploadsView(); else fetchArticles();
       }
     }
 
     async function confirmDeleteAllMyUploads() {
       if (!myArticlesCache || myArticlesCache.length === 0) {
-        alert("You don't have any uploads to delete.");
+        alert("No uploads to delete.");
         return;
       }
 
-      const confirmed = confirm("⚠️ WARNING: Are you sure you want to delete ALL of your uploaded articles? This action cannot be undone.");
-      if (!confirmed) return;
+      if (!confirm("⚠️ Delete ALL your uploaded articles? This cannot be undone.")) return;
 
-      const { error } = await supabaseClient
-        .from('articles')
-        .delete()
-        .eq('author_email', currentUser.email);
+      const { error } = await supabaseClient.from('articles').delete().eq('author_email', currentUser.email);
 
       if (error) {
         alert("Error deleting uploads: " + error.message);
@@ -389,6 +435,16 @@ let cardHTML = `
       const detail = document.getElementById('articleDetail');
       const isSupervisor = isElevatedUser();
       
+      let approvalButtons = '';
+      if (art.status === 'pending' && isSupervisor) {
+        approvalButtons = `
+          <div class="flex gap-3 mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+            <button onclick="approveArticle(${art.id}, '${art.title.replace(/'/g, "\\'")}', '${art.author_email}')" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700">Approve Article</button>
+            <button onclick="rejectArticle(${art.id}, '${art.title.replace(/'/g, "\\'")}', '${art.author_email}')" class="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-semibold hover:bg-rose-700">Reject Article</button>
+          </div>
+        `;
+      }
+
       detail.innerHTML = `
         <div class="flex justify-between items-start mb-4">
           <span class="bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1 rounded-full">${art.category || 'General'}</span>
@@ -398,6 +454,8 @@ let cardHTML = `
         <h1 class="text-3xl font-extrabold text-slate-900 mb-2">${art.title}</h1>
         <div class="text-xs text-slate-400 mb-6">By ${art.author_email || 'IT Staff'} • ${new Date(art.created_at).toLocaleString()}</div>
         
+        ${approvalButtons}
+
         ${art.image_url ? `
           <div class="mb-6 flex flex-col items-center">
             <img src="${art.image_url}" class="h-80 max-w-full object-contain rounded-xl border border-slate-200 shadow-sm">
@@ -425,10 +483,7 @@ let cardHTML = `
         if (fileInput && fileInput.files && fileInput.files.length > 0) {
           const file = fileInput.files[0];
           const filePath = `public/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-          
-          const { data: uploadData, error: uploadError } = await supabaseClient.storage
-            .from('kb-image')
-            .upload(filePath, file);
+          const { error: uploadError } = await supabaseClient.storage.from('kb-image').upload(filePath, file);
 
           if (uploadError) {
             alert("Image Upload Failed: " + uploadError.message);
@@ -441,25 +496,19 @@ let cardHTML = `
 
         const targetStatus = isElevatedUser() ? 'published' : 'pending';
 
-        const { data, error } = await supabaseClient.from('articles').insert([
-          {
-            title: title,
-            category: category,
-            content: content,
-            image_url: imageUrl,
-            status: targetStatus,
-            author_email: currentUser ? currentUser.email : 'tech@company.com'
-          }
-        ]);
+        const { error } = await supabaseClient.from('articles').insert([{
+          title: title,
+          category: category,
+          content: content,
+          image_url: imageUrl,
+          status: targetStatus,
+          author_email: currentUser ? currentUser.email : 'tech@company.com'
+        }]);
 
         if (error) {
           alert("SUPABASE ERROR: " + error.message);
         } else {
-          if (isElevatedUser()) {
-            alert('Article published successfully!');
-          } else {
-            alert('Submitted successfully! You can track its approval status under "My Uploads".');
-          }
+          alert(isElevatedUser() ? 'Article published successfully!' : 'Submitted successfully! Track status in "My Uploads".');
           closeModal('articleModal');
           document.getElementById('articleForm').reset();
           fetchArticles();
@@ -471,11 +520,7 @@ let cardHTML = `
 
     async function approveArticle(id, title, authorEmail) {
       const { error } = await supabaseClient.from('articles').update({ status: 'published' }).eq('id', id);
-      
-      if (error) {
-        alert("Error approving article: " + error.message);
-        return;
-      }
+      if (error) return alert("Error: " + error.message);
 
       await supabaseClient.from('approval_history').insert([{
         article_id: id,
@@ -487,21 +532,15 @@ let cardHTML = `
       }]);
 
       alert('Article approved!');
+      showView('dashboardView');
       fetchArticles();
     }
 
     async function rejectArticle(id, title, authorEmail) {
       const reason = prompt('Enter rejection feedback for the author:');
       if (reason) {
-        const { error } = await supabaseClient.from('articles').update({ 
-          status: 'rejected', 
-          feedback: reason 
-        }).eq('id', id);
-
-        if (error) {
-          alert("Error rejecting article: " + error.message);
-          return;
-        }
+        const { error } = await supabaseClient.from('articles').update({ status: 'rejected', feedback: reason }).eq('id', id);
+        if (error) return alert("Error: " + error.message);
 
         await supabaseClient.from('approval_history').insert([{
           article_id: id,
@@ -512,7 +551,8 @@ let cardHTML = `
           feedback: reason
         }]);
 
-        alert('Rejection feedback recorded. Sent to author notification bell.');
+        alert('Rejection recorded.');
+        showView('dashboardView');
         fetchArticles();
       }
     }
@@ -526,14 +566,11 @@ let cardHTML = `
     }
 
     async function openApprovalHistory() {
-      document.getElementById('historyModal').classList.remove('hidden');
+      openModal('historyModal');
       const container = document.getElementById('historyList');
       container.innerHTML = '<p class="text-sm text-slate-400 py-4 text-center">Loading audit history...</p>';
 
-      const { data, error } = await supabaseClient
-        .from('approval_history')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabaseClient.from('approval_history').select('*').order('created_at', { ascending: false });
 
       if (error || !data || !data.length) {
         container.innerHTML = '<p class="text-sm text-slate-400 py-4 text-center">No approval history logs found.</p>';
@@ -558,12 +595,11 @@ let cardHTML = `
 
     function filterCategory(categoryName) {
       currentCategory = categoryName;
-
       showView('dashboardView');
 
       const buttons = document.querySelectorAll('.cat-btn');
       buttons.forEach(btn => {
-        if (btn.innerText.trim().toLowerCase() === categoryName.toLowerCase()) {
+        if (btn.innerText.trim().toLowerCase().includes(categoryName.toLowerCase())) {
           btn.className = "cat-btn active bg-indigo-600 text-white px-5 py-1.5 rounded-full text-xs font-semibold shadow-sm";
         } else if (!btn.id.includes('queueTab')) {
           btn.className = "cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300";
@@ -607,11 +643,7 @@ let cardHTML = `
     }
 
     async function handleRegister(e) {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       const email = document.getElementById('regEmail').value.trim();
       const password = document.getElementById('regPassword').value.trim();
       const role = document.getElementById('regRole').value;
@@ -619,9 +651,7 @@ let cardHTML = `
       const { data, error } = await supabaseClient.auth.signUp({
         email: email,
         password: password,
-        options: {
-          data: { role: role }
-        }
+        options: { data: { role: role } }
       });
 
       if (error) {
@@ -634,11 +664,7 @@ let cardHTML = `
     }
 
     async function handleLogin(e) {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       const email = document.getElementById('loginEmail').value.trim();
       const password = document.getElementById('loginPassword').value.trim();
 
@@ -654,7 +680,7 @@ let cardHTML = `
         userRole = data.user.user_metadata?.role || 'IT Staff';
         
         showAppUI();
-        fetchArticles();
+        filterCategory('all');
       }
     }
 
@@ -670,18 +696,22 @@ let cardHTML = `
       }
 
       updateUIForRole();
+      showView('dashboardView');
     }
 
     function updateUIForRole() {
       const queueTab = document.getElementById('queueTab');
       const historyBtn = document.getElementById('historyBtn');
+      const notifBtn = document.getElementById('notifBtn');
 
       if (isElevatedUser()) {
         if (queueTab) queueTab.classList.remove('hidden');
         if (historyBtn) historyBtn.classList.remove('hidden');
+        if (notifBtn) notifBtn.classList.add('hidden');
       } else {
         if (queueTab) queueTab.classList.add('hidden');
         if (historyBtn) historyBtn.classList.add('hidden');
+        if (notifBtn) notifBtn.classList.remove('hidden');
       }
     }
 
@@ -689,6 +719,7 @@ let cardHTML = `
       await supabaseClient.auth.signOut();
       currentUser = null;
       userRole = 'IT Staff';
+      myArticlesCache = [];
       document.getElementById('appContainer').classList.add('hidden');
       document.getElementById('appContainer').classList.remove('flex');
       document.getElementById('authView').classList.remove('hidden');
@@ -702,7 +733,7 @@ let cardHTML = `
         currentUser = session.user;
         userRole = currentUser.user_metadata?.role || 'IT Staff';
         showAppUI();
-        fetchArticles();
+        filterCategory('all');
       } else {
         document.getElementById('authView').classList.remove('hidden');
         document.getElementById('appContainer').classList.add('hidden');
@@ -717,24 +748,17 @@ let cardHTML = `
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const selectedText = textarea.value.substring(start, end);
-
       if (!selectedText) return;
-
-      const replacement = `<${tag}>${selectedText}</${tag}>`;
-      textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+      textarea.value = textarea.value.substring(0, start) + `<${tag}>${selectedText}</${tag}>` + textarea.value.substring(end);
     }
 
     function applyHeader(tag) {
-      if (!tag) return;
       const textarea = document.getElementById('artContent');
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const selectedText = textarea.value.substring(start, end);
-
       if (!selectedText) return;
-
-      const replacement = `<${tag}>${selectedText}</${tag}>`;
-      textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+      textarea.value = textarea.value.substring(0, start) + `<${tag}>${selectedText}</${tag}>` + textarea.value.substring(end);
     }
   </script>
 </body>

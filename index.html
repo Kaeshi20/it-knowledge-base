@@ -301,17 +301,21 @@
       } else {
         alert("Password updated successfully! Please sign in with your new password.");
         
+        // 1. Reset flow flags and clear URL hash
         isPasswordResetFlow = false;
-
-        // 1. Clean up URL parameters/hash
         window.history.replaceState(null, null, window.location.pathname);
 
-        // 2. Sign out the temporary recovery session
-        await supabaseClient.auth.signOut();
+        // 2. Clear current session state and local tokens
         currentUser = null;
+        
+        // Force fully signing out & clearing cached tokens
+        await supabaseClient.auth.signOut();
+        localStorage.clear(); // Clears Supabase session token from browser cache
 
-        // 3. Clear password field and switch view to Login
+        // 3. Reset input fields
         document.getElementById('newPasswordInput').value = '';
+
+        // 4. Force UI directly to Auth / Login View
         document.getElementById('resetPasswordView').classList.add('hidden');
         document.getElementById('appContainer').classList.add('hidden');
         document.getElementById('appContainer').classList.remove('flex');

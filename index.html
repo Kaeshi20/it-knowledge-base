@@ -292,25 +292,32 @@
       if (e) e.preventDefault();
       const newPassword = document.getElementById('newPasswordInput').value;
 
-      const { data, error } = await supabaseClient.auth.updateUser({
+      const { error } = await supabaseClient.auth.updateUser({
         password: newPassword
       });
 
       if (error) {
         alert("Password update failed: " + error.message);
       } else {
-        alert("Password updated successfully!");
-        isPasswordResetFlow = false;
+        alert("Password updated successfully! Please sign in with your new password.");
         
-        // Clean URL hash so refreshing doesn't re-trigger recovery view
+        isPasswordResetFlow = false;
+
+        // 1. Clean up URL parameters/hash
         window.history.replaceState(null, null, window.location.pathname);
 
+        // 2. Sign out the temporary recovery session
+        await supabaseClient.auth.signOut();
+        currentUser = null;
+
+        // 3. Clear password field and switch view to Login
+        document.getElementById('newPasswordInput').value = '';
         document.getElementById('resetPasswordView').classList.add('hidden');
+        document.getElementById('appContainer').classList.add('hidden');
+        document.getElementById('appContainer').classList.remove('flex');
         
-        currentUser = data.user;
-        userRole = currentUser.user_metadata?.role || 'IT Staff';
-        showAppUI();
-        filterCategory('all');
+        switchAuthTab('login');
+        document.getElementById('authView').classList.remove('hidden');
       }
     }
 

@@ -178,6 +178,12 @@
         <h3 class="font-bold text-lg text-slate-900">Notifications & Feedback</h3>
         <button onclick="closeModal('notifModal')" class="text-slate-400 hover:text-slate-600">✕</button>
       </div>
+      
+      <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
+        <span class="text-xs text-slate-500 font-medium">Manage alerts</span>
+        <button onclick="deleteAllNotifications()" class="text-xs text-rose-600 hover:underline font-semibold">Delete All Notifications</button>
+      </div>
+
       <div id="notifList" class="space-y-3 max-h-80 overflow-y-auto"></div>
     </div>
   </div>
@@ -211,8 +217,8 @@
   <!-- SCRIPT -->
   <script>
     // --- Global State & Supabase Setup ---
-    const SUPABASE_URL = 'https://wswhxeagkqaqggilbnmk.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_lgVCXvLGHSPfLfF_gkRXnA_hoUX2Sq-';
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
@@ -220,14 +226,12 @@
     let currentCategory = 'all';
     let myArticlesCache = [];
 
-    // Strictly check if the user is an IT Senior (Approver Role)
     function isApprover() {
       if (!currentUser) return false;
       const role = currentUser.user_metadata?.role || userRole;
       return role === 'IT Senior';
     }
 
-    // Admin role check
     function isAdmin() {
       if (!currentUser) return false;
       const role = currentUser.user_metadata?.role || userRole;
@@ -346,7 +350,6 @@
           `;
         }
 
-        // Add Approve/Reject action buttons exclusively for IT Senior in Pending Queue
         if (art.status === 'pending' && isApprover()) {
           cardHTML += `
             <div class="flex gap-2 mt-4 pt-3 border-t border-slate-100">
@@ -378,7 +381,7 @@
       }
     }
 
-    // Fetch and handle notifications
+    // --- Notification Handling ---
     async function checkUserNotifications() {
       if (!currentUser || isApprover()) return;
 
@@ -392,9 +395,11 @@
       const notifList = document.getElementById('notifList');
 
       if (!error && data && data.length > 0) {
-        // Only show red badge if there are unread notifications in local storage
         const readNotifs = JSON.parse(localStorage.getItem(`read_notifs_${currentUser.id}`) || '[]');
-        const hasUnread = data.some(item => !readNotifs.includes(item.id));
+        const deletedNotifs = JSON.parse(localStorage.getItem(`deleted_notifs_${currentUser.id}`) || '[]');
+        
+        const activeNotifs = data.filter(item => !deletedNotifs.includes(item.id));
+        const hasUnread = activeNotifs.some(item => !readNotifs.includes(item.id));
 
         if (hasUnread) {
           if (notifBadge) notifBadge.classList.remove('hidden');
@@ -403,12 +408,27 @@
         }
 
         if (notifList) {
-          notifList.innerHTML = data.map(item => `
-            <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs">
-              <h4 class="font-bold text-rose-900">${item.title}</h4>
-              <p class="text-rose-700 mt-1"><strong>Reason:</strong> ${item.feedback || 'No feedback provided'}</p>
-            </div>
-          `).join('');
+          if (activeNotifs.length === 0) {
+            notifList.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No notifications.</p>';
+            return;
+          }
+
+          notifList.innerHTML = activeNotifs.map(item => {
+            const isRead = readNotifs.includes(item.id);
+            return `
+              <div class="p-3 border rounded-xl text-xs flex justify-between items-start ${isRead ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-rose-50 border-rose-200 text-rose-900 font-medium'}">
+                <div class="flex-1 pr-2">
+                  <h4 class="font-bold">${item.title}</h4>
+                  <p class="mt-1"><strong>Reason:</strong> ${item.feedback || 'No feedback provided'}</p>
+                </div>
+                <div class="flex flex-col gap-1 text-right">
+                  <button onclick="toggleNotificationReadState(${item.id})" class="text-[10px] font-bold underline ${isRead ? 'text-indigo-600' : 'text-slate-600'}">
+                    ${isRead ? 'Mark Unread' : 'Mark Read'}
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
         }
       } else {
         if (notifBadge) notifBadge.classList.add('hidden');
@@ -416,24 +436,42 @@
       }
     }
 
-    // Opens modal and marks all notifications as read to clear badge
-    async function openNotificationModal() {
+    function openNotificationModal() {
       openModal('notifModal');
-      const notifBadge = document.getElementById('notifBadge');
-      if (notifBadge) notifBadge.classList.add('hidden');
+      checkUserNotifications();
+    }
 
-      if (currentUser) {
-        const { data } = await supabaseClient
-          .from('articles')
-          .select('id')
-          .eq('author_email', currentUser.email)
-          .eq('status', 'rejected');
+    function toggleNotificationReadState(id) {
+      if (!currentUser) return;
+      const key = `read_notifs_${currentUser.id}`;
+      let readNotifs = JSON.parse(localStorage.getItem(key) || '[]');
 
-        if (data) {
-          const allIds = data.map(i => i.id);
-          localStorage.setItem(`read_notifs_${currentUser.id}`, JSON.stringify(allIds));
-        }
+      if (readNotifs.includes(id)) {
+        readNotifs = readNotifs.filter(item => item !== id);
+      } else {
+        readNotifs.push(id);
       }
+
+      localStorage.setItem(key, JSON.stringify(readNotifs));
+      checkUserNotifications();
+    }
+
+    async function deleteAllNotifications() {
+      if (!currentUser) return;
+      if (!confirm("Clear all notifications?")) return;
+
+      const { data } = await supabaseClient
+        .from('articles')
+        .select('id')
+        .eq('author_email', currentUser.email)
+        .eq('status', 'rejected');
+
+      if (data) {
+        const allIds = data.map(i => i.id);
+        localStorage.setItem(`deleted_notifs_${currentUser.id}`, JSON.stringify(allIds));
+      }
+
+      checkUserNotifications();
     }
 
     async function confirmDeleteSingleUpload(articleId) {
@@ -530,7 +568,6 @@
           imageUrl = urlData.publicUrl;
         }
 
-        // IT Senior or Admin auto-publishes; IT Staff goes to pending queue
         const targetStatus = (isApprover() || isAdmin()) ? 'published' : 'pending';
 
         const { error } = await supabaseClient.from('articles').insert([{

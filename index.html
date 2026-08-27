@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KB Portal</title>
+  <title>IT Knowledge Base</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+<body class="bg-slate-50 font-sans text-slate-800 antialiased min-h-screen">
 
-  <!-- AUTHENTICATION VIEW -->
+  <!-- AUTH VIEW -->
   <div id="authView" class="min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
       <div class="text-center mb-6">
-        <h1 class="text-2xl font-black text-slate-900 tracking-tight">IT Knowledge Portal</h1>
-        <p class="text-xs text-slate-500 mt-1">Sign in or register to access documentation</p>
+        <h1 class="text-2xl font-bold text-slate-900">IT Knowledge Base</h1>
+        <p class="text-slate-500 text-sm mt-1">Sign in or register to access the portal</p>
       </div>
 
       <!-- Auth Tabs -->
@@ -26,245 +26,152 @@
       <!-- Login Form -->
       <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address</label>
-          <input type="email" id="loginEmail" required class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Email</label>
+          <input type="email" id="loginEmail" required class="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
-          <input type="password" id="loginPassword" required class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
+          <input type="password" id="loginPassword" required class="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
         </div>
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition text-sm">Sign In</button>
-
-        <button type="button" onclick="openForgotPasswordModal()" class="text-xs text-indigo-600 hover:underline">
-  Forgot Password?
-</button>
+        <div class="flex justify-end">
+          <button type="button" onclick="openForgotPasswordModal()" class="text-xs text-indigo-600 hover:underline">Forgot password?</button>
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-semibold shadow-md hover:bg-indigo-700 transition">Sign In</button>
       </form>
-
-      <!-- FORGOT PASSWORD MODAL (Request Link) -->
-<div id="forgotPasswordModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100">
-    <h3 class="text-lg font-bold text-slate-800 mb-1">Reset Your Password</h3>
-    <p class="text-xs text-slate-500 mb-4">Enter your account email address and we'll send you a recovery link.</p>
-    
-    <form id="forgotPasswordForm" onsubmit="submitForgotPassword(event)" class="space-y-4">
-      <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address</label>
-        <input type="email" id="resetEmailInput" required class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="name@company.com">
-      </div>
-      
-      <div class="flex items-center justify-end gap-2 pt-2">
-        <button type="button" onclick="closeForgotPasswordModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
-        <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm">Send Reset Link</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- NEW PASSWORD MODAL (Set Password) -->
-<div id="updatePasswordModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100">
-    <h3 class="text-lg font-bold text-slate-800 mb-1">Set New Password</h3>
-    <p class="text-xs text-slate-500 mb-4">Please enter your new password below.</p>
-    
-    <form id="updatePasswordForm" onsubmit="submitNewPassword(event)" class="space-y-4">
-      <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">New Password</label>
-        <input type="password" id="newPasswordInput" required minlength="6" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="••••••••">
-      </div>
-      
-      <div class="flex items-center justify-end gap-2 pt-2">
-        <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm">Update Password</button>
-      </div>
-    </form>
-  </div>
-</div>
 
       <!-- Register Form -->
       <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address</label>
-          <input type="email" id="regEmail" required class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Email</label>
+          <input type="email" id="regEmail" required class="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
-          <input type="password" id="regPassword" required class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
+          <input type="password" id="regPassword" required class="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Account Role</label>
-          <select id="regRole" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm bg-white">
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Role</label>
+          <select id="regRole" class="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
             <option value="IT Staff">IT Staff</option>
             <option value="Supervisor">Supervisor</option>
-            <option value="Admin">Admin</option>
           </select>
         </div>
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition text-sm">Create Account</button>
+        <button type="submit" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-semibold shadow-md hover:bg-indigo-700 transition">Create Account</button>
       </form>
     </div>
   </div>
 
-  <!-- MAIN APP CONTAINER -->
-  <div id="appContainer" class="hidden flex-col min-h-screen w-full">
-    
-    <!-- CLEAN WHITE NAVIGATION BAR -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        
-        <!-- Left Brand & Navigation Tabs -->
-        <div class="flex items-center gap-8">
-          <h1 onclick="filterCategory('All')" class="text-xl font-black text-slate-900 tracking-tight cursor-pointer">KB Portal</h1>
-          
-          <nav class="flex items-center gap-6">
-            <button onclick="filterCategory('All')" class="text-sm font-semibold text-slate-800 hover:text-indigo-600 transition">Dashboard</button>
-            <button onclick="openMyUploadsView()" class="text-sm font-medium text-slate-500 hover:text-slate-800 transition">My Uploads</button>
-          </nav>
+  <!-- APP CONTAINER -->
+  <div id="appContainer" class="hidden min-h-screen flex-col">
+    <!-- Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="filterCategory('all')">
+          <div class="bg-indigo-600 text-white p-2 rounded-xl font-bold text-lg">KB</div>
+          <span class="font-bold text-lg text-slate-900">IT Knowledge Base</span>
         </div>
-
-        <!-- Right User Control Actions -->
-        <div class="flex items-center gap-5">
-          <!-- Notification Bell -->
-          <div class="relative">
-            <button onclick="toggleNotifDropdown(event)" class="relative p-2 text-slate-400 hover:text-slate-600 transition">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-              <span id="notifBadge" class="hidden absolute top-0 right-0 bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
-            </button>
-
-            <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white text-slate-800 rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
-              <div class="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <span class="font-bold text-xs uppercase tracking-wider text-slate-600">Notifications</span>
-                <button onclick="clearNotifications()" class="text-[10px] text-rose-600 font-bold hover:underline">Clear All</button>
-              </div>
-              <div id="notifList" class="max-h-64 overflow-y-auto divide-y divide-slate-100"></div>
-            </div>
-          </div>
-
-          <!-- New Article Primary CTA Button -->
-          <button onclick="openNewArticleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm">
-            + New Article
-          </button>
-
-          <!-- Audit History Log Button (Supervisors/Admins) -->
-          <button id="historyBtn" onclick="openApprovalHistory()" class="hidden text-xs font-medium text-slate-500 hover:text-slate-800 transition">Audit Logs</button>
-
-          <!-- User Email Badge -->
-          <span id="userBadge" class="text-xs text-slate-500 font-medium">User</span>
-
-          <!-- Logout Button -->
-          <button onclick="handleLogout()" class="text-xs font-bold text-rose-600 hover:text-rose-700 transition">Logout</button>
+        <div class="flex items-center gap-4">
+          <span id="userBadge" class="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full font-medium"></span>
+          <button onclick="openModal('articleModal')" class="bg-indigo-600 text-white px-4 py-1.5 rounded-xl text-xs font-semibold shadow hover:bg-indigo-700 transition">+ New Article</button>
+          <button onclick="openMyUploadsView()" class="text-xs font-semibold text-slate-600 hover:text-indigo-600">My Uploads</button>
+          <button id="historyBtn" onclick="openApprovalHistory()" class="hidden text-xs font-semibold text-slate-600 hover:text-indigo-600">Audit Logs</button>
+          <button onclick="handleLogout()" class="text-xs font-semibold text-rose-600 hover:text-rose-800">Logout</button>
         </div>
-
       </div>
     </header>
 
-    <!-- CONTENT WRAPPER -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 flex flex-col">
-      
-      <!-- SEARCH BAR -->
-      <div id="searchContainer" class="mb-6 w-full max-w-md">
-        <div class="relative">
-          <input type="text" id="searchInput" onkeyup="fetchArticles()" placeholder="Search articles..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-sm">
-          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-        </div>
-      </div>
-
-      <!-- CATEGORY FILTER BAR -->
-      <div id="categoryBar" class="mb-8 w-full">
-        <div class="flex gap-2 overflow-x-auto pb-1">
-          <button onclick="filterCategory('All')" class="cat-btn active bg-indigo-600 text-white px-5 py-1.5 rounded-full text-xs font-semibold shadow-sm">All</button>
+    <!-- Content Body -->
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+      <!-- DASHBOARD VIEW -->
+      <div id="dashboardView">
+        <!-- Category Filter Tabs -->
+        <div class="flex flex-wrap gap-2 mb-6">
+          <button onclick="filterCategory('all')" class="cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300">All</button>
           <button onclick="filterCategory('Hardware')" class="cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300">Hardware</button>
           <button onclick="filterCategory('Software')" class="cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300">Software</button>
           <button onclick="filterCategory('Network')" class="cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300">Network</button>
-          <button onclick="filterCategory('Security')" class="cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300">Security</button>
-          
-          <button id="queueTab" onclick="filterCategory('Queue')" class="hidden cat-btn bg-amber-100 text-amber-900 border border-amber-300 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5">
-            Review Queue <span id="queueCount" class="bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+          <button id="queueTab" onclick="filterCategory('pending')" class="cat-btn hidden bg-amber-50 border border-amber-200 text-amber-700 px-5 py-1.5 rounded-full text-xs font-semibold">
+            Pending Queue (<span id="queueCount">0</span>)
           </button>
         </div>
+
+        <!-- Grid of Articles -->
+        <div id="articlesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
       </div>
 
-      <!-- MAIN DASHBOARD GRID -->
-      <main class="w-full flex-1">
-        
-        <!-- DASHBOARD VIEW -->
-        <div id="dashboardView" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full items-start"></div>
+      <!-- ARTICLE DETAIL VIEW -->
+      <div id="articleView" class="hidden max-w-3xl mx-auto bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+        <button onclick="showView('dashboardView')" class="mb-6 text-xs font-semibold text-indigo-600 hover:underline">← Back to Dashboard</button>
+        <div id="articleDetail"></div>
+      </div>
 
-        <!-- MY UPLOADS VIEW -->
-        <div id="myUploadsView" class="hidden w-full">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h2 class="text-2xl font-black text-slate-900">My Uploads History</h2>
-              <p class="text-xs text-slate-500">Track your submitted articles, review statuses, and feedback.</p>
-            </div>
-            <div class="flex items-center gap-3">
-              <button onclick="filterCategory('All')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl transition">← Back to KB Dashboard</button>
-              <input type="text" id="myUploadsSearchInput" onkeyup="filterMyUploads()" placeholder="Search my uploads..." class="px-3 py-2 border border-slate-300 bg-white rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-              <button onclick="confirmDeleteAllMyUploads()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold px-3 py-2 rounded-xl transition">Delete All</button>
-            </div>
-          </div>
-          <div id="myUploadsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full items-start"></div>
+      <!-- MY UPLOADS VIEW -->
+      <div id="myUploadsView" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-slate-900">My Uploads</h2>
+          <button onclick="confirmDeleteAllMyUploads()" class="text-xs bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl font-semibold hover:bg-rose-100">Delete All My Uploads</button>
         </div>
-
-        <!-- SINGLE ARTICLE DETAIL VIEW -->
-        <div id="articleView" class="hidden bg-white rounded-2xl p-8 border border-slate-200 shadow-sm w-full">
-          <button onclick="showView('dashboardView')" class="text-xs font-bold text-indigo-600 hover:underline mb-6 flex items-center gap-1">← Back to KB Dashboard</button>
-          <div id="articleDetail"></div>
-        </div>
-
-      </main>
-    </div>
-
+        <div id="myArticlesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </div>
+    </main>
   </div>
 
-  <!-- NEW ARTICLE MODAL -->
+  <!-- ARTICLE MODAL -->
   <div id="articleModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-xl w-full p-6 border border-slate-200 shadow-2xl">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-xl shadow-2xl border border-slate-100">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-extrabold text-slate-900">Create New KB Article</h3>
+        <h3 class="font-bold text-lg text-slate-900">Create Knowledge Base Article</h3>
         <button onclick="closeModal('articleModal')" class="text-slate-400 hover:text-slate-600">✕</button>
       </div>
 
       <form id="articleForm" onsubmit="handleArticleSubmit(event)" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Title</label>
-          <input type="text" id="artTitle" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Title</label>
+          <input type="text" id="artTitle" required class="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
         </div>
+
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Category</label>
-          <select id="artCategory" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Category</label>
+          <select id="artCategory" class="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
             <option value="Hardware">Hardware</option>
             <option value="Software">Software</option>
             <option value="Network">Network</option>
-            <option value="Security">Security</option>
           </select>
         </div>
-        <div>
-  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Content</label>
-  
-  <!-- Formatting Toolbar -->
-  <div class="flex items-center gap-1 mb-2 p-1 bg-slate-100 border border-slate-200 rounded-lg">
-    <button type="button" onclick="formatText('b')" class="px-2 py-1 text-xs font-bold rounded hover:bg-slate-200 text-slate-700">B</button>
-    <button type="button" onclick="formatText('i')" class="px-2 py-1 text-xs italic rounded hover:bg-slate-200 text-slate-700">I</button>
-    <button type="button" onclick="formatText('u')" class="px-2 py-1 text-xs underline rounded hover:bg-slate-200 text-slate-700">U</button>
-    <div class="h-4 w-px bg-slate-300 mx-1"></div>
-    <select onchange="applyHeader(this.value); this.value='';" class="text-xs px-2 py-1 bg-white border border-slate-200 rounded focus:outline-none text-slate-700">
-      <option value="">Text Size</option>
-      <option value="h1">Heading 1 (Large)</option>
-      <option value="h2">Heading 2 (Medium)</option>
-      <option value="p">Normal Text</option>
-    </select>
-  </div>
 
-  <textarea id="artContent" rows="5" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
-</div>
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Image (Optional)</label>
-          <input type="file" id="artImage" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Content Formatting</label>
+          <div class="flex gap-2 mb-2">
+            <button type="button" onclick="formatText('b')" class="px-3 py-1 bg-slate-100 text-xs font-bold rounded hover:bg-slate-200">B</button>
+            <button type="button" onclick="formatText('i')" class="px-3 py-1 bg-slate-100 text-xs italic rounded hover:bg-slate-200">I</button>
+            <button type="button" onclick="applyHeader('h2')" class="px-3 py-1 bg-slate-100 text-xs font-bold rounded hover:bg-slate-200">H2</button>
+          </div>
+          <textarea id="artContent" rows="6" required class="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
         </div>
 
-        <p id="artModalNote" class="text-xs text-amber-600 font-medium">* Note: Article will be sent to the Supervisor Review Queue before publishing.</p>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Attach Image (Optional)</label>
+          <input type="file" id="artImage" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+        </div>
 
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModal('articleModal')" class="px-4 py-2 border rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
-          <button type="submit" id="artSubmitBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition">Submit Article</button>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" onclick="closeModal('articleModal')" class="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 shadow">Submit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD MODAL -->
+  <div id="forgotPasswordModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-slate-100">
+      <h3 class="font-bold text-lg text-slate-900 mb-2">Reset Password</h3>
+      <p class="text-slate-500 text-xs mb-4">Enter your registered email to receive a password recovery link.</p>
+      <form onsubmit="submitForgotPassword(event)" class="space-y-4">
+        <input type="email" id="resetEmailInput" required placeholder="name@company.com" class="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closeForgotPasswordModal()" class="px-4 py-2 text-xs font-semibold text-slate-500">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700">Send Reset Link</button>
         </div>
       </form>
     </div>
@@ -272,377 +179,130 @@
 
   <!-- AUDIT HISTORY MODAL -->
   <div id="historyModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 border border-slate-200 shadow-2xl flex flex-col max-h-[80vh]">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-slate-100 max-h-[80vh] flex flex-col">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-extrabold text-slate-900">Supervisor Approval Audit Logs</h3>
+        <h3 class="font-bold text-lg text-slate-900">Supervisor Audit History</h3>
         <button onclick="closeModal('historyModal')" class="text-slate-400 hover:text-slate-600">✕</button>
       </div>
-      <div id="historyList" class="overflow-y-auto space-y-3 flex-1 pr-1"></div>
+      <div id="historyList" class="overflow-y-auto space-y-3 flex-1 pr-2"></div>
     </div>
   </div>
 
-  <!-- JAVASCRIPT LOGIC -->
+  <!-- SCRIPT -->
   <script>
-    const SUPABASE_URL = 'https://wswhxeagkqaqggilbnmk.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_lgVCXvLGHSPfLfF_gkRXnA_hoUX2Sq-';
-    
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // --- Global State & Supabase Setup ---
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
     let userRole = 'IT Staff';
-    let currentCategory = 'All';
-    let userNotifications = [];
+    let currentCategory = 'all';
     let myArticlesCache = [];
 
-const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-  redirectTo: 'https://kaeshi20.github.io/it-knowledge-base/',
-});
-    
-    // --- Modal Toggles ---
-function openForgotPasswordModal() {
-  document.getElementById('forgotPasswordModal').classList.remove('hidden');
-}
-
-function closeForgotPasswordModal() {
-  document.getElementById('forgotPasswordModal').classList.add('hidden');
-  document.getElementById('forgotPasswordForm').reset();
-}
-
-// --- Step 1: Request Reset Email ---
-async function submitForgotPassword(event) {
-  event.preventDefault();
-  const email = document.getElementById('resetEmailInput').value;
-
-  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}`,
-  });
-
-  if (error) {
-    alert("Error: " + error.message);
-  } else {
-    alert("Password reset link sent! Check your email inbox.");
-    closeForgotPasswordModal();
-  }
-}
-
-// --- Step 2: Handle Return from Email Link ---
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'PASSWORD_RECOVERY') {
-    // Show the "Set New Password" modal automatically when landing from email link
-    document.getElementById('updatePasswordModal').classList.remove('hidden');
-  }
-});
-
-// --- Step 3: Save New Password ---
-async function submitNewPassword(event) {
-  event.preventDefault();
-  const newPassword = document.getElementById('newPasswordInput').value;
-
-  const { error } = await supabaseClient.auth.updateUser({
-    password: newPassword
-  });
-
-  if (error) {
-    alert("Error updating password: " + error.message);
-  } else {
-    alert("Password updated successfully! You can now access your account.");
-    document.getElementById('updatePasswordModal').classList.add('hidden');
-    document.getElementById('updatePasswordForm').reset();
-  }
-}
-
-    // VIEW SWITCHER
-    function showView(viewId) {
-      document.getElementById('dashboardView').classList.add('hidden');
-      document.getElementById('myUploadsView').classList.add('hidden');
-      document.getElementById('articleView').classList.add('hidden');
-      
-      document.getElementById(viewId).classList.remove('hidden');
-
-      if (viewId === 'dashboardView') {
-        document.getElementById('categoryBar').classList.remove('hidden');
-        document.getElementById('searchContainer').classList.remove('hidden');
-      } else {
-        document.getElementById('categoryBar').classList.add('hidden');
-        document.getElementById('searchContainer').classList.add('hidden');
-      }
-    }
-
-    function closeModal(modalId) {
-      document.getElementById(modalId).classList.add('hidden');
-    }
-
-    function openNewArticleModal() {
-      const modalNote = document.getElementById('artModalNote');
-      const submitBtn = document.getElementById('artSubmitBtn');
-
-      if (isElevatedUser()) {
-        modalNote.className = "text-xs text-emerald-600 font-medium";
-        modalNote.innerText = "✓ Note: As a Supervisor/Admin, your article will be published immediately.";
-        submitBtn.innerText = "Publish Article";
-      } else {
-        modalNote.className = "text-xs text-amber-600 font-medium";
-        modalNote.innerText = "* Note: Article will be sent to the Supervisor Review Queue before publishing.";
-        submitBtn.innerText = "Submit for Approval";
-      }
-
-      document.getElementById('articleModal').classList.remove('hidden');
-    }
-
-    // PERSISTENT NOTIFICATION BADGE HANDLING
-    function toggleNotifDropdown(e) {
-      if (e) e.stopPropagation();
-      const dropdown = document.getElementById('notifDropdown');
-      const isOpening = dropdown.classList.contains('hidden');
-      
-      dropdown.classList.toggle('hidden');
-
-      if (isOpening && currentUser && userNotifications.length > 0) {
-        const latestTimestamp = userNotifications[0].created_at;
-        const seenKey = 'notif_last_seen_time_' + currentUser.email;
-        
-        localStorage.setItem(seenKey, latestTimestamp);
-        document.getElementById('notifBadge').classList.add('hidden');
-      }
-    }
-
-    window.addEventListener('click', () => {
-      const dropdown = document.getElementById('notifDropdown');
-      if (dropdown && !dropdown.classList.contains('hidden')) {
-        dropdown.classList.add('hidden');
-      }
-    });
-
+    // Helper to check supervisor/admin role
     function isElevatedUser() {
-      const role = (userRole || '').toLowerCase();
-      return role === 'supervisor' || role === 'admin';
+      if (!currentUser) return false;
+      const role = currentUser.user_metadata?.role || userRole;
+      return role === 'Supervisor' || role === 'Admin';
     }
 
-    // FETCH NOTIFICATIONS & COMPARE PERSISTED TIMESTAMPS
-    async function fetchUserNotifications() {
-      const badge = document.getElementById('notifBadge');
-      const list = document.getElementById('notifList');
-
-      if (!currentUser || !currentUser.email) {
-        if (badge) badge.classList.add('hidden');
-        return;
-      }
-
-      const { data, error } = await supabaseClient
-        .from('approval_history')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error || !data) return;
-
-      const userLogs = data.filter(item => item.article_author === currentUser.email);
-      userNotifications = userLogs;
-
-      if (userLogs.length > 0) {
-        const seenKey = 'notif_last_seen_time_' + currentUser.email;
-        const lastSeenTimeStr = localStorage.getItem(seenKey);
-
-        let unreadCount = 0;
-
-        if (!lastSeenTimeStr) {
-          unreadCount = userLogs.length;
-        } else {
-          const lastSeenTime = new Date(lastSeenTimeStr).getTime();
-          unreadCount = userLogs.filter(n => new Date(n.created_at).getTime() > lastSeenTime).length;
-        }
-
-        if (unreadCount > 0) {
-          badge.innerText = unreadCount;
-          badge.classList.remove('hidden');
-        } else {
-          badge.classList.add('hidden');
-        }
-
-        list.innerHTML = userLogs.map(n => `
-          <div onclick="clickNotificationItem()" class="p-3 text-xs hover:bg-slate-50 transition cursor-pointer ${n.action === 'approved' ? 'border-l-4 border-emerald-500' : 'border-l-4 border-rose-500'}">
-            <div class="flex justify-between items-center mb-1">
-              <span class="font-bold capitalize ${n.action === 'approved' ? 'text-emerald-600' : 'text-rose-600'}">Article ${n.action}</span>
-              <span class="text-[10px] text-slate-400">${new Date(n.created_at).toLocaleDateString()}</span>
-            </div>
-            <p class="font-medium text-slate-800 line-clamp-1">"${n.article_title || 'Article'}"</p>
-            ${n.feedback ? `<p class="text-slate-500 mt-1 italic bg-slate-100 p-1.5 rounded">"${n.feedback}"</p>` : ''}
-          </div>
-        `).join('');
-      } else {
-        if (badge) badge.classList.add('hidden');
-        if (list) list.innerHTML = `<div class="p-4 text-xs text-center text-slate-400">No notifications</div>`;
-      }
+    // --- Modal Toggles ---
+    function openModal(id) {
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.remove('hidden');
     }
 
-    function clickNotificationItem() {
-      document.getElementById('notifDropdown').classList.add('hidden');
-      openMyUploadsView();
+    function closeModal(id) {
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.add('hidden');
     }
 
-    async function clearNotifications() {
-      if (!userNotifications || userNotifications.length === 0) return;
-
-      const confirmed = confirm("Are you sure you want to clear all your notifications?");
-      if (!confirmed) return;
-
-      const idsToDelete = userNotifications.map(n => n.id);
-      
-      const { error } = await supabaseClient
-        .from('approval_history')
-        .delete()
-        .in('id', idsToDelete);
-
-      if (error) {
-        alert("Error clearing notifications: " + error.message);
-      } else {
-        userNotifications = [];
-        if (currentUser) {
-          localStorage.setItem('notif_seen_count_' + currentUser.email, '0');
-        }
-        document.getElementById('notifBadge').classList.add('hidden');
-        document.getElementById('notifList').innerHTML = `<div class="p-4 text-xs text-center text-slate-400">No notifications</div>`;
-      }
+    function openForgotPasswordModal() {
+      openModal('forgotPasswordModal');
     }
 
-    // FETCH PUBLIC ARTICLES
-    async function fetchArticles() {
-      const searchInput = document.getElementById('searchInput')?.value?.trim();
-
-      let query = supabaseClient
-        .from('articles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (currentCategory === 'Queue') {
-        query = query.eq('status', 'pending');
-      } else {
-        query = query.or('status.eq.published,status.is.null');
-        
-        if (currentCategory && currentCategory !== 'All') {
-          query = query.eq('category', currentCategory);
-        }
-      }
-
-      if (searchInput) {
-        query = query.or(`title.ilike.%${searchInput}%,content.ilike.%${searchInput}%`);
-      }
-
-      const { data: articles, error } = await query;
-
-      if (error) {
-        console.error('Error fetching articles:', error);
-        return;
-      }
-
-      renderArticles(articles || []);
-      updateQueueCount();
-      fetchUserNotifications();
+    function closeForgotPasswordModal() {
+      closeModal('forgotPasswordModal');
     }
 
-    // RENDER CARDS TO MAIN DASHBOARD
-    function renderArticles(articles) {
-      const grid = document.getElementById('dashboardView');
-      grid.innerHTML = '';
+    // --- Step 1: Request Reset Email ---
+    async function submitForgotPassword(event) {
+      if (event) event.preventDefault();
+      const email = document.getElementById('resetEmailInput').value;
 
-      if (articles.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400">No articles found in this category.</div>`;
-        return;
-      }
-
-      articles.forEach(art => {
-        const isQueue = art.status === 'pending';
-        const isSupervisor = isElevatedUser();
-        const card = document.createElement('div');
-        card.className = "bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between cursor-pointer w-full h-full";
-        
-        const cleanTitle = (art.title || 'Untitled').replace(/'/g, "\\'");
-
-        let cardHTML = `
-          <div>
-            <div class="flex justify-between items-start mb-3">
-              <span class="text-xs font-bold px-2.5 py-1 rounded-md ${isQueue ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-600'}">${art.category || 'General'}</span>
-              <span class="text-xs text-slate-400">${art.created_at ? new Date(art.created_at).toLocaleDateString() : 'Recent'}</span>
-            </div>
-            <h3 class="font-bold text-lg text-slate-900 mb-2">${art.title || 'Untitled Article'}</h3>
-            <p class="text-slate-600 text-sm line-clamp-3 mb-4">${art.content || 'No content available.'}</p>
-          </div>
-        `;
-
-        if (isQueue && isSupervisor) {
-          cardHTML += `
-            <div class="flex gap-2 pt-3 border-t border-slate-100 mt-3">
-              <button onclick="event.stopPropagation(); approveArticle(${art.id}, '${cleanTitle}', '${art.author_email}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg transition">Approve</button>
-              <button onclick="event.stopPropagation(); rejectArticle(${art.id}, '${cleanTitle}', '${art.author_email}')" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 rounded-lg transition">Reject</button>
-            </div>
-          `;
-        }
-
-        card.innerHTML = cardHTML;
-        card.onclick = () => openArticlePage(art);
-        grid.appendChild(card);
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://kaeshi20.github.io/it-knowledge-base/',
       });
+
+      if (error) {
+        alert("Error: " + error.message);
+      } else {
+        alert("Password reset link sent! Check your email inbox.");
+        closeForgotPasswordModal();
+      }
     }
 
-    async function openMyUploadsView() {
-      showView('myUploadsView');
-      const grid = document.getElementById('myUploadsGrid');
-      grid.innerHTML = '<div class="col-span-full text-center py-8 text-slate-400">Loading your submissions...</div>';
+    // --- Views Navigation ---
+    function showView(viewId) {
+      const views = ['dashboardView', 'articleView', 'myUploadsView'];
+      views.forEach(v => {
+        const elem = document.getElementById(v);
+        if (elem) elem.classList.add('hidden');
+      });
+      const target = document.getElementById(viewId);
+      if (target) target.classList.remove('hidden');
+    }
 
-      if (!currentUser) return;
+    // --- Fetch Articles ---
+    async function fetchArticles() {
+      let query = supabaseClient.from('articles').select('*');
 
-      const { data: articles, error } = await supabaseClient
-        .from('articles')
-        .select('*')
-        .eq('author_email', currentUser.email)
-        .order('created_at', { ascending: false });
+      if (currentCategory === 'pending') {
+        query = query.eq('status', 'pending');
+      } else if (currentCategory !== 'all') {
+        query = query.eq('category', currentCategory).eq('status', 'published');
+      } else {
+        query = query.eq('status', 'published');
+      }
 
-      if (error || !articles) {
-        grid.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400">Failed to load uploads.</div>';
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching articles:", error);
         return;
       }
 
-      myArticlesCache = articles;
-      renderMyUploadsCards(articles);
+      renderArticles(data);
+      updateQueueCount();
     }
 
-    function filterMyUploads() {
-      const searchVal = document.getElementById('myUploadsSearchInput').value.toLowerCase().trim();
-      if (!searchVal) {
-        renderMyUploadsCards(myArticlesCache);
-        return;
-      }
-
-      const filtered = myArticlesCache.filter(art => 
-        (art.title && art.title.toLowerCase().includes(searchVal)) ||
-        (art.content && art.content.toLowerCase().includes(searchVal))
-      );
-
-      renderMyUploadsCards(filtered);
-    }
-
-    function renderMyUploadsCards(articles) {
-      const grid = document.getElementById('myUploadsGrid');
+    function renderArticles(articles) {
+      const grid = document.getElementById('articlesGrid');
+      if (!grid) return;
       grid.innerHTML = '';
 
-      if (articles.length === 0) {
-        grid.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400">No articles found in your uploads history.</div>';
+      if (!articles || articles.length === 0) {
+        grid.innerHTML = `<p class="col-span-full text-center text-slate-400 py-10">No articles found in this section.</p>`;
         return;
       }
 
       articles.forEach(art => {
         const card = document.createElement('div');
-        card.className = "bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between relative cursor-pointer w-full h-full";
+        card.className = "bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between relative";
 
-        let statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 flex items-center gap-1">✓ Published</span>`;
+        let statusBadge = '';
         if (art.status === 'pending') {
-          statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 flex items-center gap-1">⏳ Pending</span>`;
+          statusBadge = `<span class="bg-amber-100 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-bold">Pending Approval</span>`;
         } else if (art.status === 'rejected') {
-          statusBadge = `<span class="text-xs font-bold px-2.5 py-1 rounded-md bg-rose-100 text-rose-800 flex items-center gap-1">✕ Rejected</span>`;
+          statusBadge = `<span class="bg-rose-100 text-rose-700 text-xs px-2.5 py-0.5 rounded-full font-bold">Rejected</span>`;
+        } else {
+          statusBadge = `<span class="bg-indigo-50 text-indigo-600 text-xs px-2.5 py-0.5 rounded-full font-semibold">${art.category || 'General'}</span>`;
         }
 
         let cardHTML = `
           <div>
-            <div class="flex justify-between items-start mb-3 pr-8">
+            <div class="flex justify-between items-center mb-3">
               ${statusBadge}
               <span class="text-xs text-slate-400">${new Date(art.created_at).toLocaleDateString()}</span>
             </div>
@@ -669,6 +329,22 @@ async function submitNewPassword(event) {
         card.onclick = () => openArticlePage(art);
         grid.appendChild(card);
       });
+    }
+
+    async function openMyUploadsView() {
+      showView('myUploadsView');
+      if (!currentUser) return;
+
+      const { data, error } = await supabaseClient
+        .from('articles')
+        .select('*')
+        .eq('author_email', currentUser.email)
+        .order('created_at', { ascending: false });
+
+      if (!error) {
+        myArticlesCache = data || [];
+        renderArticles(myArticlesCache);
+      }
     }
 
     async function confirmDeleteSingleUpload(articleId) {
@@ -726,7 +402,7 @@ async function submitNewPassword(event) {
           </div>
         ` : ''}
         
-        <div class="prose max-w-none text-slate-700 whitespace-pre-wrap leading-relaxed">${art.content}</div>
+        <div class="prose max-w-none text-slate-700 leading-relaxed">${art.content}</div>
       `;
       showView('articleView');
     }
@@ -1035,32 +711,29 @@ async function submitNewPassword(event) {
     checkUserSession();
 
     function formatText(tag) {
-  const textarea = document.getElementById('artContent');
-  const start = textarea.selectionStart;
-  const end = textarea.selectionEnd;
-  const selectedText = textarea.value.substring(start, end);
+      const textarea = document.getElementById('artContent');
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = textarea.value.substring(start, end);
 
-  if (!selectedText) return; // If no text is highlighted, do nothing
+      if (!selectedText) return;
 
-  const replacement = `<${tag}>${selectedText}</${tag}>`;
-  
-  // Replace highlighted text with tagged text
-  textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
-}
+      const replacement = `<${tag}>${selectedText}</${tag}>`;
+      textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+    }
 
-function applyHeader(tag) {
-  if (!tag) return;
-  const textarea = document.getElementById('artContent');
-  const start = textarea.selectionStart;
-  const end = textarea.selectionEnd;
-  const selectedText = textarea.value.substring(start, end);
+    function applyHeader(tag) {
+      if (!tag) return;
+      const textarea = document.getElementById('artContent');
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = textarea.value.substring(start, end);
 
-  if (!selectedText) return;
+      if (!selectedText) return;
 
-  const replacement = `<${tag}>${selectedText}</${tag}>`;
-  textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
-}
-    
-</script>
+      const replacement = `<${tag}>${selectedText}</${tag}>`;
+      textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+    }
+  </script>
 </body>
 </html>

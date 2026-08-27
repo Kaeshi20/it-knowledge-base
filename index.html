@@ -92,6 +92,14 @@
     <main class="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
       <!-- DASHBOARD VIEW -->
       <div id="dashboardView">
+        <!-- Search Bar -->
+        <div class="mb-6">
+          <div class="relative max-w-md">
+            <input type="text" id="dashboardSearch" oninput="handleDashboardSearch()" placeholder="Search articles by title, content, or author..." class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm">
+            <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+        </div>
+
         <!-- Category Filter Tabs -->
         <div class="flex flex-wrap gap-2 mb-6">
           <button onclick="filterCategory('all')" class="cat-btn bg-white border border-slate-200 text-slate-600 px-5 py-1.5 rounded-full text-xs font-semibold hover:border-slate-300">All</button>
@@ -120,6 +128,15 @@
           <h2 class="text-xl font-bold text-slate-900">My Uploads</h2>
           <button onclick="confirmDeleteAllMyUploads()" class="text-xs bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl font-semibold hover:bg-rose-100">Delete All My Uploads</button>
         </div>
+
+        <!-- My Uploads Search Bar -->
+        <div class="mb-6">
+          <div class="relative max-w-md">
+            <input type="text" id="myUploadsSearch" oninput="handleMyUploadsSearch()" placeholder="Search my uploads..." class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm">
+            <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+        </div>
+
         <div id="myArticlesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
       </div>
     </main>
@@ -224,6 +241,7 @@
     let currentUser = null;
     let userRole = 'IT Staff';
     let currentCategory = 'all';
+    let dashboardArticlesCache = [];
     let myArticlesCache = [];
 
     function isApprover() {
@@ -240,9 +258,8 @@
 
     function canDeleteArticle(article) {
       if (!currentUser) return false;
-      if (isApprover()) return true; // IT Senior can delete any article
-      if (isAdmin()) return false;   // Admin cannot delete articles
-      // IT Staff can only delete their own articles
+      if (isApprover()) return true; 
+      if (isAdmin()) return false;   
       return article.author_email === currentUser.email;
     }
 
@@ -283,7 +300,7 @@
       if (target) target.classList.remove('hidden');
     }
 
-    // --- Fetch Articles ---
+    // --- Fetch & Search Articles ---
     async function fetchArticles() {
       let query = supabaseClient.from('articles').select('*');
 
@@ -306,9 +323,43 @@
         return;
       }
 
-      renderArticles(data, 'articlesGrid');
+      dashboardArticlesCache = data || [];
+      handleDashboardSearch();
       updateQueueCount();
       checkUserNotifications();
+    }
+
+    function handleDashboardSearch() {
+      const query = (document.getElementById('dashboardSearch')?.value || '').toLowerCase().trim();
+      
+      if (!query) {
+        renderArticles(dashboardArticlesCache, 'articlesGrid');
+        return;
+      }
+
+      const filtered = dashboardArticlesCache.filter(art => 
+        (art.title && art.title.toLowerCase().includes(query)) ||
+        (art.content && art.content.toLowerCase().includes(query)) ||
+        (art.author_email && art.author_email.toLowerCase().includes(query))
+      );
+
+      renderArticles(filtered, 'articlesGrid');
+    }
+
+    function handleMyUploadsSearch() {
+      const query = (document.getElementById('myUploadsSearch')?.value || '').toLowerCase().trim();
+
+      if (!query) {
+        renderArticles(myArticlesCache, 'myArticlesGrid');
+        return;
+      }
+
+      const filtered = myArticlesCache.filter(art => 
+        (art.title && art.title.toLowerCase().includes(query)) ||
+        (art.content && art.content.toLowerCase().includes(query))
+      );
+
+      renderArticles(filtered, 'myArticlesGrid');
     }
 
     function renderArticles(articles, targetGridId = 'articlesGrid') {
@@ -389,7 +440,7 @@
 
       if (!error) {
         myArticlesCache = data || [];
-        renderArticles(myArticlesCache, 'myArticlesGrid');
+        handleMyUploadsSearch();
       }
     }
 
@@ -846,6 +897,7 @@
       await supabaseClient.auth.signOut();
       currentUser = null;
       userRole = 'IT Staff';
+      dashboardArticlesCache = [];
       myArticlesCache = [];
       document.getElementById('appContainer').classList.add('hidden');
       document.getElementById('appContainer').classList.remove('flex');

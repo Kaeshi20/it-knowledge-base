@@ -263,13 +263,28 @@
     let myArticlesCache = [];
     let isPasswordResetFlow = false;
 
+    // Direct Synchronous Hash Detection
+    function detectPasswordRecoveryInURL() {
+      const hash = window.location.hash;
+      const params = new URLSearchParams(window.location.search);
+      if (hash.includes('type=recovery') || params.get('type') === 'recovery') {
+        return true;
+      }
+      return false;
+    }
+
+    function showResetPasswordView() {
+      document.getElementById('authView').classList.add('hidden');
+      document.getElementById('appContainer').classList.add('hidden');
+      document.getElementById('appContainer').classList.remove('flex');
+      document.getElementById('resetPasswordView').classList.remove('hidden');
+    }
+
     // Supabase Event Listener for Password Recovery Links
     supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY' || detectPasswordRecoveryInURL()) {
         isPasswordResetFlow = true;
-        document.getElementById('authView').classList.add('hidden');
-        document.getElementById('appContainer').classList.add('hidden');
-        document.getElementById('resetPasswordView').classList.remove('hidden');
+        showResetPasswordView();
       }
     });
 
@@ -286,6 +301,10 @@
       } else {
         alert("Password updated successfully!");
         isPasswordResetFlow = false;
+        
+        // Clean URL hash so refreshing doesn't re-trigger recovery view
+        window.history.replaceState(null, null, window.location.pathname);
+
         document.getElementById('resetPasswordView').classList.add('hidden');
         
         currentUser = data.user;
@@ -959,7 +978,12 @@
     }
 
     async function checkUserSession() {
-      if (isPasswordResetFlow) return;
+      // Intercept recovery flow BEFORE checking standard session UI
+      if (detectPasswordRecoveryInURL() || isPasswordResetFlow) {
+        isPasswordResetFlow = true;
+        showResetPasswordView();
+        return;
+      }
 
       const { data: { session } } = await supabaseClient.auth.getSession();
       
@@ -976,6 +1000,7 @@
       }
     }
 
+    // Run session check on page init
     checkUserSession();
 
     function formatText(tag) {

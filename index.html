@@ -301,21 +301,22 @@
           statusBadge = `<span class="bg-indigo-50 text-indigo-600 text-xs px-2.5 py-0.5 rounded-full font-semibold">${art.category || 'General'}</span>`;
         }
 
-        let cardHTML = `
-          <div>
-            <div class="flex justify-between items-center mb-3">
-              ${statusBadge}
-              <span class="text-xs text-slate-400">${new Date(art.created_at).toLocaleDateString()}</span>
-            </div>
-            
-            <button onclick="event.stopPropagation(); confirmDeleteSingleUpload(${art.id})" title="Delete Article" class="absolute top-4 right-4 text-slate-300 hover:text-rose-600 transition p-1 z-10">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-            </button>
+        // Replace this block inside renderArticles(articles):
+let cardHTML = `
+  <div>
+    <div class="flex justify-between items-center mb-3 pr-8">
+      ${statusBadge}
+      <span class="text-xs text-slate-400">${new Date(art.created_at).toLocaleDateString()}</span>
+    </div>
+    
+    <button onclick="event.stopPropagation(); confirmDeleteSingleUpload(${art.id})" title="Delete Article" class="absolute top-4 right-3 text-slate-300 hover:text-rose-600 transition p-1 z-10">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+    </button>
 
-            <h3 class="font-bold text-lg text-slate-900 mb-2">${art.title}</h3>
-            <p class="text-slate-600 text-sm line-clamp-3 mb-4">${art.content}</p>
-          </div>
-        `;
+    <h3 class="font-bold text-lg text-slate-900 mb-2">${art.title}</h3>
+    <p class="text-slate-600 text-sm line-clamp-3 mb-4 whitespace-pre-wrap">${art.content}</p>
+  </div>
+`;
 
         if (art.status === 'rejected' && art.feedback) {
           cardHTML += `
